@@ -57,47 +57,47 @@ function App({ keyProp }) {
   };
 
 
-const send = async (e) => {
+  const send = async (e) => {
     e.preventDefault();
     if (message.trim()) {
-        let idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
-        if (!idConversation) {
-            await createConversations();
-            idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
-        }
+      let idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
+      if (!idConversation) {
+        await createConversations();
+        idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
+      }
 
 
-        setMessages((prevMessages) => [...prevMessages, { role: 'user', content: message }]);
-        const msg = message;
-        setMessage('');
-        setTimeout(() => {
-            setTyping(true);
-        }, 400);
+      setMessages((prevMessages) => [...prevMessages, { role: 'user', content: message }]);
+      const msg = message;
+      setMessage('');
+      setTimeout(() => {
+        setTyping(true);
+      }, 400);
 
-        try {
-            const response = await Api.post(`sendMessage`, { idConversation, message: msg, role: 'user', keyProp });
-            setMessages(response.data.data.message.original.messages);
+      try {
+        const response = await Api.post(`sendMessage`, { idConversation, message: msg, role: 'user', keyProp });
+        setMessages(response.data.data.message.original.messages);
+        setTyping(false);
+        playAudio();
+      } catch (error) {
+
+        if (error.response && error.response.status === 403) {
+          getToken();
+          try {
+            const retryResponse = await Api.post('sendMessage', { idConversation, message: msg, role: 'user', keyProp });
+            setMessages(retryResponse.data.data.message.original.messages);
             setTyping(false);
             playAudio();
-        } catch (error) {
-
-            if (error.response && error.response.status === 403) {
-                getToken();
-                try {
-                    const retryResponse = await Api.post('sendMessage', { idConversation, message: msg, role: 'user', keyProp });
-                    setMessages(retryResponse.data.data.message.original.messages);
-                    setTyping(false);
-                    playAudio();
-                } catch (retryError) {
-                    console.error('Error resending message:', retryError);
-                    refresh();
-                }
-            } else {
-                console.error('Error sending message:', error);
-            }
+          } catch (retryError) {
+            console.error('Error resending message:', retryError);
+            refresh();
+          }
+        } else {
+          console.error('Error sending message:', error);
         }
+      }
     }
-};
+  };
 
   const handleChange = (e) => {
     setMessage(e.target.value);
@@ -122,44 +122,48 @@ const send = async (e) => {
 
   const createConversations = async () => {
     try {
-        const url = window.location.href;
-        const response = await Api.post(`createConversation`, { chat_id: keyProp, url });
-        sessionStorage.setItem('ksdyughiqgfdukhysqguyh', response.data.id);
+      const url = window.location.href;
+      const response = await Api.post(`createConversation`, { chat_id: keyProp, url });
+      sessionStorage.setItem('ksdyughiqgfdukhysqguyh', response.data.id);
     } catch (error) {
-        if (error.response && error.response.status === 403) {
-            getToken();
-            createConversations();
-        }
-        console.error('Error creating conversation:', error);
+      if (error.response && error.response.status === 403) {
+        getToken();
+        createConversations();
+      }
+      console.error('Error creating conversation:', error);
     }
-};
+  };
 
-function refresh() {
-  setIsSpinning(true);
-  setTimeout(() => {
+  function refresh() {
+    setIsSpinning(true);
+    setTimeout(() => {
       sessionStorage.removeItem("ksdyughiqgfdukhysqguyh");
       setMessages([{ role: 'assistant', content: initMessage }])
       setMessage('');
       setTyping(false)
       setIsSpinning(false)
-  }, 1000);
-}
+    }, 1000);
+  }
+
   useEffect(() => {
-    const handleScroll = (event) => {
-      const { currentTarget: target } = event;
-      target.scroll({ top: target.scrollHeight, behavior: 'smooth' });
-    };
-
     const currentMessageEl = messageEl.current;
+    const handleScroll = () => {
+      if (currentMessageEl) {
+        currentMessageEl.scroll({ top: currentMessageEl.scrollHeight, behavior: 'smooth' });
+      }
+    };
+    const observer = new MutationObserver(handleScroll);
     if (currentMessageEl) {
-      currentMessageEl.addEventListener('DOMNodeInserted', handleScroll);
+      observer.observe(currentMessageEl, {
+        childList: true, // Observe direct children
+        subtree: true // Observe all descendants
+      });
     }
-
+    // Scroll to the bottom initially
+    handleScroll();
     // Cleanup on component unmount
     return () => {
-      if (currentMessageEl) {
-        currentMessageEl.removeEventListener('DOMNodeInserted', handleScroll);
-      }
+      observer.disconnect();
     };
   }, [messages]);
 
@@ -227,40 +231,40 @@ function refresh() {
 
   const Suggest = async (msg) => {
     if (!typing) {
-        let idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
-        if (!idConversation) {
-            await createConversations();
-            idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
-        }
+      let idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
+      if (!idConversation) {
+        await createConversations();
+        idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
+      }
 
 
-        setMessages((prevMessages) => [...prevMessages, { role: 'user', content: msg }]);
-        setTimeout(() => {
-            setTyping(true);
-        }, 1000);
+      setMessages((prevMessages) => [...prevMessages, { role: 'user', content: msg }]);
+      setTimeout(() => {
+        setTyping(true);
+      }, 1000);
 
-        try {
-            const response = await Api.post(`sendMessage`, { idConversation, message: msg, role: 'user', keyProp });
-            setMessages(response.data.data.message.original.messages);
+      try {
+        const response = await Api.post(`sendMessage`, { idConversation, message: msg, role: 'user', keyProp });
+        setMessages(response.data.data.message.original.messages);
+        setTyping(false);
+        playAudio();
+      } catch (error) {
+        if (error.response && error.response.status === 403) {
+          getToken();
+          try {
+            const retryResponse = await Api.post('sendMessage', { idConversation, message: msg, role: 'user', keyProp });
+            setMessages(retryResponse.data.data.message.original.messages);
             setTyping(false);
             playAudio();
-        } catch (error) {
-            if (error.response && error.response.status === 403) {
-                getToken();
-                try {
-                    const retryResponse = await Api.post('sendMessage', { idConversation, message: msg, role: 'user', keyProp });
-                    setMessages(retryResponse.data.data.message.original.messages);
-                    setTyping(false);
-                    playAudio();
-                } catch (retryError) {
-                    console.error('Error resending message:', retryError);
-                }
-            } else {
-                console.error('Error sending message:', error);
-            }
+          } catch (retryError) {
+            console.error('Error resending message:', retryError);
+          }
+        } else {
+          console.error('Error sending message:', error);
         }
+      }
     }
-};
+  };
 
   function formatContent(content) {
     // Remove 【number:number†source】 pattern
@@ -1242,7 +1246,18 @@ top: -10px;
 }
 
 
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
 
+.spin {
+  animation: spin 1s linear infinite;
+}
 
 
   `;
@@ -1382,17 +1397,17 @@ top: -10px;
                             <span>{name}</span>
                           </div>
                           <div className="actions-Gkdshjgfkjdgf" style={{ marginRight: "10px", cursor: 'pointer' }}>
-                              {
-                                  colors.dir == 'ltr' &&
-                                  <>
-                                      <svg onClick={refresh} style={{ width: '25px', marginRight: '2px' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`${isSpinning ? 'spin' : ''}`} >
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                      </svg>
-                                      <svg onClick={toggle} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" width={30} height={30}>
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                                      </svg>
-                                  </>
-                              }
+                            {
+                              colors.dir == 'ltr' &&
+                              <>
+                                <svg onClick={refresh} style={{ width: '25px', marginRight: '2px' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`${isSpinning ? 'spin' : ''}`} >
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                                <svg onClick={toggle} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" width={30} height={30}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                              </>
+                            }
 
                           </div>
                         </div>
@@ -1409,7 +1424,7 @@ top: -10px;
                               </div>
                             }
 
-                              {suggestedMessages.length > 0 && messages.length <= 1 &&
+                            {suggestedMessages.length > 0 && messages.length <= 1 &&
 
                               <div className='messageS' style={{ marginTop: '10px' }}>
 
@@ -1476,7 +1491,7 @@ top: -10px;
           {
             !collapsed &&
             <div className={`poweredBy${keyProp}`}>
-                <a style={{ display: 'flex', justifyContent: 'center', width: '100%', backgroundColor: '#e2e8f070' }} href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
+              <a style={{ display: 'flex', justifyContent: 'center', width: '100%', backgroundColor: '#e2e8f070' }} href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
                 <img src={BASE_URL + '/images/logo.png'} style={{ width: '100px' }} />
               </a>
             </div>
