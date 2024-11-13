@@ -24,12 +24,20 @@ function App({ keyProp }) {
   const [isHovered, setIsHovered] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [timeZone, setTimeZone] = useState('');
 
   const playAudio = () => {
     if (audioRef.current) {
       audioRef.current.play();
     }
   };
+
+
+  useEffect(() => {
+    const detectedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    setTimeZone(detectedTimeZone);
+    console.log(detectedTimeZone)
+  }, []);
 
   useEffect(() => {
     const savedVisibility = sessionStorage.getItem('isVisible');
@@ -123,7 +131,7 @@ function App({ keyProp }) {
   const createConversations = async () => {
     try {
       const url = window.location.href;
-      const response = await Api.post(`createConversation`, { chat_id: keyProp, url });
+      const response = await Api.post(`createConversation`, { chat_id: keyProp, url, timezone: timeZone });
       sessionStorage.setItem('ksdyughiqgfdukhysqguyh', response.data.id);
     } catch (error) {
       if (error.response && error.response.status === 403) {
