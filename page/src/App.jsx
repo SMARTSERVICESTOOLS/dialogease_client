@@ -19,6 +19,9 @@ function App({ keyProp, id }) {
   const [privacy, setPrivacy] = useState('');
   const elementRef = useRef(null);
   const [height, setHeight] = useState(0);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [timeZone, setTimeZone] = useState('');
+  const [initMessage, setIntMessage] = useState('');
 
   const playAudio = () => {
     if (audioRef.current) {
@@ -26,51 +29,50 @@ function App({ keyProp, id }) {
     }
   };
 
-
-
-
-  // useEffect(() => {
-  //   const handleScroll = (event) => {
-  //     const { currentTarget: target } = event;
-  //     target.scroll({ top: target.scrollHeight, behavior: 'auto' });
-  //   };
-
-  //   const currentMessageEl = messageEl.current;
-  //   if (currentMessageEl) {
-  //     currentMessageEl.addEventListener('DOMNodeInserted', handleScroll);
-  //   }
-
-  //   // Cleanup on component unmount
-  //   return () => {
-  //     if (currentMessageEl) {
-  //       currentMessageEl.removeEventListener('DOMNodeInserted', handleScroll);
-  //     }
-  //   };
-  // }, [messages]);
+  useEffect(() => {
+    const detectedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    setTimeZone(detectedTimeZone);
+    console.log(detectedTimeZone)
+  }, []);
 
   const send = async (e) => {
     e.preventDefault();
     if (message.trim()) {
-      let idConversation = sessionStorage.getItem('jsqhgdhshziqjlyruizeyryyueg');
+      let idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
       if (!idConversation) {
         await createConversations();
-        idConversation = sessionStorage.getItem('jsqhgdhshziqjlyruizeyryyueg');
+        idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
       }
 
-      try {
-        setMessages((prevMessages) => [...prevMessages, { role: 'user', content: message }]);
-        const msg = message;
-        setMessage('');
-        setTimeout(() => {
-          setTyping(true);
-        }, 1000);
 
+      setMessages((prevMessages) => [...prevMessages, { role: 'user', content: message }]);
+      const msg = message;
+      setMessage('');
+      setTimeout(() => {
+        setTyping(true);
+      }, 400);
+
+      try {
         const response = await Api.post(`sendMessage`, { idConversation, message: msg, role: 'user', keyProp });
         setMessages(response.data.data.message.original.messages);
         setTyping(false);
         playAudio();
       } catch (error) {
-        console.error('Error sending message:', error);
+
+        if (error.response && error.response.status === 403) {
+          getToken();
+          try {
+            const retryResponse = await Api.post('sendMessage', { idConversation, message: msg, role: 'user', keyProp });
+            setMessages(retryResponse.data.data.message.original.messages);
+            setTyping(false);
+            playAudio();
+          } catch (retryError) {
+            console.error('Error resending message:', retryError);
+            refresh();
+          }
+        } else {
+          console.error('Error sending message:', error);
+        }
       }
     }
   };
@@ -95,16 +97,46 @@ function App({ keyProp, id }) {
 
   const createConversations = async () => {
     try {
-
       const url = window.location.href;
-      const response = await Api.post(`createConversation`, { chat_id: keyProp, url });
+      const response = await Api.post(`createConversation`, { chat_id: keyProp, url, timezone: timeZone });
       sessionStorage.setItem('jsqhgdhshziqjlyruizeyryyueg', response.data.id);
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
   };
 
+  function refresh() {
+    setIsSpinning(true);
+    setTimeout(() => {
+      sessionStorage.removeItem("ksdyughiqgfdukhysqguyh");
+      setMessages([{ role: 'assistant', content: initMessage }])
+      setMessage('');
+      setTyping(false)
+      setIsSpinning(false)
+    }, 1000);
+  }
 
+  useEffect(() => {
+    const currentMessageEl = messageEl.current;
+    const handleScroll = () => {
+      if (currentMessageEl) {
+        currentMessageEl.scroll({ top: currentMessageEl.scrollHeight, behavior: 'smooth' });
+      }
+    };
+    const observer = new MutationObserver(handleScroll);
+    if (currentMessageEl) {
+      observer.observe(currentMessageEl, {
+        childList: true, // Observe direct children
+        subtree: true // Observe all descendants
+      });
+    }
+    // Scroll to the bottom initially
+    handleScroll();
+    // Cleanup on component unmount
+    return () => {
+      observer.disconnect();
+    };
+  }, [messages]);
 
   const getToken = () => {
     Api.get('csrf-token', { params: { type: "page" } })
@@ -127,6 +159,7 @@ function App({ keyProp, id }) {
       setPrivacy(response.data.message_privacy);
 
       setLoading(false);
+      setIntMessage(response.data.init_message)
 
       const idConversation = sessionStorage.getItem('jsqhgdhshziqjlyruizeyryyueg');
       if (!idConversation) {
@@ -158,40 +191,70 @@ function App({ keyProp, id }) {
 
   const Suggest = async (msg) => {
     if (!typing) {
-      let idConversation = sessionStorage.getItem('jsqhgdhshziqjlyruizeyryyueg');
+      let idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
       if (!idConversation) {
         await createConversations();
-        idConversation = sessionStorage.getItem('jsqhgdhshziqjlyruizeyryyueg');
+        idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
       }
 
-      try {
-        setMessages((prevMessages) => [...prevMessages, { role: 'user', content: msg }]);
-        setTimeout(() => {
-          setTyping(true);
-        }, 1000);
 
+      setMessages((prevMessages) => [...prevMessages, { role: 'user', content: msg }]);
+      setTimeout(() => {
+        setTyping(true);
+      }, 1000);
+
+      try {
         const response = await Api.post(`sendMessage`, { idConversation, message: msg, role: 'user', keyProp });
         setMessages(response.data.data.message.original.messages);
         setTyping(false);
         playAudio();
       } catch (error) {
-        console.error('Error sending message:', error);
+        if (error.response && error.response.status === 403) {
+          getToken();
+          try {
+            const retryResponse = await Api.post('sendMessage', { idConversation, message: msg, role: 'user', keyProp });
+            setMessages(retryResponse.data.data.message.original.messages);
+            setTyping(false);
+            playAudio();
+          } catch (retryError) {
+            console.error('Error resending message:', retryError);
+          }
+        } else {
+          console.error('Error sending message:', error);
+        }
       }
     }
   };
 
-  const formatContent = (content) => {
+  function formatContent(content) {
+    // Remove 【number:number†source】 pattern
+    content = content.replace(/【\d+:\d+†source】/g, '');
+
+    // Replace new line characters with <br /> tags
     let formattedContent = content.replace(/\n/g, '<br />');
+
+    // Bold text (double asterisks)
     formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+
+    // Italic text (single asterisks or underscores)
     formattedContent = formattedContent.replace(/(?:\*{1}(.*?)\*{1}|_{1}(.*?)_{1})/g, (match, p1, p2) => {
       return `<i>${p1 || p2}</i>`;
     });
+
+    // Strikethrough text (double tildes)
     formattedContent = formattedContent.replace(/~~(.*?)~~/g, '<del>$1</del>');
+
+    // Links ([link text](URL))
     formattedContent = formattedContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a class="a-link" href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+    // Inline code (backticks)
     formattedContent = formattedContent.replace(/`(.*?)`/g, '<code>$1</code>');
 
-    return DOMPurify.sanitize(formattedContent);
-  };
+    // Sanitize the formatted content to prevent XSS attacks
+    return DOMPurify.sanitize(formattedContent, {
+      ADD_ATTR: ['target']
+    });
+  }
 
 
   function calcY(x) {
@@ -865,7 +928,18 @@ top: -10px;
 
 
 
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
 
+.spin {
+  animation: spin 1s linear infinite;
+}
 
   `;
 
@@ -892,7 +966,9 @@ top: -10px;
                             <span>{name}</span>
                           </div>
                           <div className="actions-Gkdshjgfkjdgf" style={{ marginRight: "10px", cursor: 'pointer' }}>
-
+                            <svg onClick={refresh} style={{ width: '25px', marginRight: '2px' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`${isSpinning ? 'spin' : ''}`} >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
                           </div>
                         </div>
                         <div className="conversation" >
@@ -908,7 +984,7 @@ top: -10px;
                               </div>
                             }
 
-                            {suggestedMessages.length && messages.length <= 1 &&
+                            {suggestedMessages.length && messages.length <= 1 ?
 
                               <div className='messageS' style={{ marginTop: '10px' }}>
 
@@ -919,7 +995,7 @@ top: -10px;
                                     <span key={index} className='suggested-message' style={{ display: 'block', marginTop: "10px" }} onClick={() => Suggest(suggestedMessage)}>{suggestedMessage}</span>
                                   )
                                 }
-                              </div>}
+                              </div> : ''}
 
                           </div>
 
@@ -962,12 +1038,12 @@ top: -10px;
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', width: '400px' ,marginTop:'10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', width: '400px', marginTop: '4px', backgroundColor: 'rgba(226, 232, 240, 0.44)' }}>
               <a href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
                 <img src={BASE_URL + '/images/logo.png'} style={{ width: '100px' }} />
               </a>
             </div>
-            
+
           </div>
 
         </div>
