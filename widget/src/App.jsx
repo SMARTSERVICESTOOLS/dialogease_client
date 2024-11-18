@@ -10,7 +10,7 @@ function App({ keyProp }) {
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
   const messageEl = useRef(null);
-  const [typing, setTyping] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [colors, setColors] = useState({});
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
@@ -67,34 +67,28 @@ function App({ keyProp }) {
 
   const send = async (e) => {
     e.preventDefault();
-    if (message.trim()) {
+    if (message.trim() && !isSending) {
+      setIsSending(true);
+      const msg = message;
+      setMessages((prevMessages) => [...prevMessages, { role: 'user', content: msg }]);
+      setMessage('');
       let idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
       if (!idConversation) {
         await createConversations();
         idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
       }
-
-
-      setMessages((prevMessages) => [...prevMessages, { role: 'user', content: message }]);
-      const msg = message;
-      setMessage('');
-      setTimeout(() => {
-        setTyping(true);
-      }, 400);
-
       try {
         const response = await Api.post(`sendMessage`, { idConversation, message: msg, role: 'user', keyProp });
         setMessages(response.data.data.message.original.messages);
-        setTyping(false);
+    
         playAudio();
       } catch (error) {
-
         if (error.response && error.response.status === 403) {
           getToken();
           try {
             const retryResponse = await Api.post('sendMessage', { idConversation, message: msg, role: 'user', keyProp });
             setMessages(retryResponse.data.data.message.original.messages);
-            setTyping(false);
+          
             playAudio();
           } catch (retryError) {
             console.error('Error resending message:', retryError);
@@ -103,10 +97,11 @@ function App({ keyProp }) {
         } else {
           console.error('Error sending message:', error);
         }
+      } finally {
+        setIsSending(false);
       }
     }
   };
-
   const handleChange = (e) => {
     setMessage(e.target.value);
   };
@@ -148,7 +143,7 @@ function App({ keyProp }) {
       sessionStorage.removeItem("ksdyughiqgfdukhysqguyh");
       setMessages([{ role: 'assistant', content: initMessage }])
       setMessage('');
-      setTyping(false)
+      setIsSending(false)
       setIsSpinning(false)
     }, 1000);
   }
@@ -228,7 +223,7 @@ function App({ keyProp }) {
       setConversationId(idConversation)
       setTimeout(() => {
         getMessages();
-      }, 1000);
+      }, 200);
     }
     setLoading(true);
 
@@ -238,7 +233,7 @@ function App({ keyProp }) {
   }, [keyProp]);
 
   const Suggest = async (msg) => {
-    if (!typing) {
+    if (!isSending) {
       let idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
       if (!idConversation) {
         await createConversations();
@@ -248,13 +243,13 @@ function App({ keyProp }) {
 
       setMessages((prevMessages) => [...prevMessages, { role: 'user', content: msg }]);
       setTimeout(() => {
-        setTyping(true);
+        setIsSending(true);
       }, 1000);
 
       try {
         const response = await Api.post(`sendMessage`, { idConversation, message: msg, role: 'user', keyProp });
         setMessages(response.data.data.message.original.messages);
-        setTyping(false);
+        setIsSending(false);
         playAudio();
       } catch (error) {
         if (error.response && error.response.status === 403) {
@@ -262,7 +257,7 @@ function App({ keyProp }) {
           try {
             const retryResponse = await Api.post('sendMessage', { idConversation, message: msg, role: 'user', keyProp });
             setMessages(retryResponse.data.data.message.original.messages);
-            setTyping(false);
+            setIsSending(false);
             playAudio();
           } catch (retryError) {
             console.error('Error resending message:', retryError);
@@ -1268,6 +1263,33 @@ top: -10px;
 }
 
 
+
+  .loaderP2024SSX5 {
+   width: 24px;
+            height: 24px !important;
+            border-radius: 50%;
+            position: relative;
+            transform:rotate(45deg);
+            background: #fff;
+ }
+ .loaderP2024SSX5:before{
+  content: "";
+            box-sizing: border-box;
+            position: absolute;
+            inset: 0px;
+            border-radius: 50%;
+            border:12px solid #${colors.primaryColor};
+            animation: prixClipFix 2s infinite linear;
+            }
+ @keyframes prixClipFix {
+              0%   {clip-path:polygon(50% 50%,0 0,0 0,0 0,0 0,0 0)}
+              25%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 0,100% 0,100% 0)}
+              50%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,100% 100%,100% 100%)}
+              75%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 100%)}
+              100% {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 0)}
+          }
+      
+
   `;
 
   return (
@@ -1427,7 +1449,7 @@ top: -10px;
                               </div>
                             ))}
                             {
-                              typing && <div key='typing' className={`message ${'received' + colors.dir} `}>
+                              isSending && <div key='isSending' className={`message ${'received' + colors.dir} `}>
                                 <div className="lds-ellipsis"><div></div><div></div><div></div><div></div></div>
                               </div>
                             }
@@ -1466,21 +1488,23 @@ top: -10px;
 
 
                           <form onSubmit={send}>
-
-
-                            <div className='conversation-compose'>
-                              <input className="input-msg" name="input" placeholder={placeholder} autoComplete="off" value={message} onChange={handleChange} autoFocus></input>
-
-                              <button className="send" disabled={typing}>
-                                <div className="circle">
-
+                          <div className='conversation-compose'>
+                            <input className="input-msg" name="input" placeholder="Type a message…" autoComplete="off" value={message} onChange={handleChange} autoFocus />
+                            <button className="send" disabled={isSending}>
+                              <div className="circle">
+                                {isSending ? (
+                                  // Loader element
+                                  <div className="loaderP2024SSX5"></div>
+                                ) : (
+                                  // SVG icon when not sending
                                   <svg xmlns="http://www.w3.org/2000/svg" strokeWidth={1.5} width={28} fill="none" viewBox="0 0 20 20">
-                                    <path fill="currentColor" d="M15.44 1.68c.69-.05 1.47.08 2.13.74.66.67.8 1.45.75 2.14-.03.47-.15 1-.25 1.4l-.09.35a43.7 43.7 0 0 1-3.83 10.67A2.52 2.52 0 0 1 9.7 17l-1.65-3.03a.83.83 0 0 1 .14-1l3.1-3.1a.83.83 0 1 0-1.18-1.17l-3.1 3.1a.83.83 0 0 1-.99.14L2.98 10.3a2.52 2.52 0 0 1 .04-4.45 43.7 43.7 0 0 1 11.02-3.9c.4-.1.92-.23 1.4-.26Z"></path></svg>
-                                </div>
-                              </button>
-                            </div>
-
-                          </form>
+                                    <path fill="currentColor" d="M15.44 1.68c.69-.05 1.47.08 2.13.74.66.67.8 1.45.75 2.14-.03.47-.15 1-.25 1.4l-.09.35a43.7 43.7 0 0 1-3.83 10.67A2.52 2.52 0 0 1 9.7 17l-1.65-3.03a.83.83 0 0 1 .14-1l3.1-3.1a.83.83 0 1 0-1.18-1.17l-3.1 3.1a.83.83 0 0 1-.99.14L2.98 10.3a2.52 2.52 0 0 1 .04-4.45 43.7 43.7 0 0 1 11.02-3.9c.4-.1.92-.23 1.4-.26Z"></path>
+                                  </svg>
+                                )}
+                              </div>
+                            </button>
+                          </div>
+                        </form>
                         </div>
 
                         <div id='privacy-container-15645314545643sd5hgthjfgjh' dangerouslySetInnerHTML={{ __html: privacy }} />
