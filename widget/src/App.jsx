@@ -80,7 +80,7 @@ function App({ keyProp }) {
       try {
         const response = await Api.post(`sendMessage`, { idConversation, message: msg, role: 'user', keyProp });
         setMessages(response.data.data.message.original.messages);
-    
+
         playAudio();
       } catch (error) {
         if (error.response && error.response.status === 403) {
@@ -88,7 +88,7 @@ function App({ keyProp }) {
           try {
             const retryResponse = await Api.post('sendMessage', { idConversation, message: msg, role: 'user', keyProp });
             setMessages(retryResponse.data.data.message.original.messages);
-          
+
             playAudio();
           } catch (retryError) {
             console.error('Error resending message:', retryError);
@@ -1382,63 +1382,23 @@ top: -10px;
                     <div className="chat">
                       <div className="chat-container-Gkdshjgfkjdgf">
 
-                        {/* <div className="user-bar-Gkdshjgfkjdgf">
-                          <div className="back">
-                            {
-                              colors.dir == 'rtl' &&
-                              <svg onClick={toggle} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={30} height={30}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                              </svg>
-                            }
-
-                          </div>
-                          <div className="avatar-Gkdshjgfkjdgf">
-                            <img src={BASE_URL + image} alt="avatar-Gkdshjgfkjdgf" />
-                          </div>
-                          <div className="name">
-                            <span>{name}</span>
-                          </div>
-                          <div className="actions-Gkdshjgfkjdgf" style={{ marginRight: "10px", cursor: 'pointer' }}>
-                            {
-                              colors.dir == 'ltr' &&
-                              <svg onClick={toggle} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" width={30} height={30}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                              </svg>
-                            }
-
-                          </div>
-                        </div> */}
-
-
                         <div className="user-bar-Gkdshjgfkjdgf">
                           <div className="back">
-                            {
-                              colors.dir == 'rtl' &&
-                              <svg onClick={toggle} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={30} height={30}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                              </svg>
-                            }
 
                           </div>
-                          <div className="avatar-Gkdshjgfkjdgf">
+                          <div className="avatar-Gkdshjgfkjdgf" style={{ ...(colors.dir === "rtl" && { margin: "0 5px 0 5px" }), }}>
                             <img src={BASE_URL + image} alt="avatar-Gkdshjgfkjdgf" />
                           </div>
                           <div className="name">
                             <span>{name}</span>
                           </div>
-                          <div className="actions-Gkdshjgfkjdgf" style={{ marginRight: "10px", cursor: 'pointer' }}>
-                            {
-                              colors.dir == 'ltr' &&
-                              <>
-                                <svg onClick={refresh} style={{ width: '25px', marginRight: '2px' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`${isSpinning ? 'spin' : ''}`} >
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                </svg>
-                                <svg onClick={toggle} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" width={30} height={30}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                                </svg>
-                              </>
-                            }
-
+                          <div className="actions-Gkdshjgfkjdgf" style={{ marginRight: "10px", cursor: 'pointer', ...(colors.dir === "rtl" && { margin: "0 71px 0 0" }), }}>
+                            <svg onClick={refresh} style={{ width: '25px', marginRight: '2px' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`${isSpinning ? 'spin' : ''}`} >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
+                            <svg onClick={toggle} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" width={30} height={30}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                            </svg>
                           </div>
                         </div>
                         <div className="conversation" >
@@ -1471,40 +1431,25 @@ top: -10px;
 
 
                           <div className='suggestedMessagesDev'>
-                            {/* {
-                              !suggestedMessages.length ?
-                                <div className='suggested-messages-container'>
-                                  {
-                                    suggestedMessages.map((suggestedMessage, index) =>
-                                      <span key={index} className='suggested-message' onClick={() => Suggest(suggestedMessage)}>{suggestedMessage}</span>
-                                    )
-                                  }
-                                </div> : ''
-                            } */}
                           </div>
-
-
-
-
 
                           <form onSubmit={send}>
-                          <div className='conversation-compose'>
-                            <input className="input-msg" name="input" placeholder="Type a message…" autoComplete="off" value={message} onChange={handleChange} autoFocus />
-                            <button className="send" disabled={isSending}>
-                              <div className="circle">
-                                {isSending ? (
-                                  // Loader element
-                                  <div className="loaderP2024SSX5"></div>
-                                ) : (
-                                  // SVG icon when not sending
-                                  <svg xmlns="http://www.w3.org/2000/svg" strokeWidth={1.5} width={28} fill="none" viewBox="0 0 20 20">
-                                    <path fill="currentColor" d="M15.44 1.68c.69-.05 1.47.08 2.13.74.66.67.8 1.45.75 2.14-.03.47-.15 1-.25 1.4l-.09.35a43.7 43.7 0 0 1-3.83 10.67A2.52 2.52 0 0 1 9.7 17l-1.65-3.03a.83.83 0 0 1 .14-1l3.1-3.1a.83.83 0 1 0-1.18-1.17l-3.1 3.1a.83.83 0 0 1-.99.14L2.98 10.3a2.52 2.52 0 0 1 .04-4.45 43.7 43.7 0 0 1 11.02-3.9c.4-.1.92-.23 1.4-.26Z"></path>
-                                  </svg>
-                                )}
-                              </div>
-                            </button>
-                          </div>
-                        </form>
+                            <div className='conversation-compose'>
+                              <input className="input-msg" name="input" placeholder={placeholder} autoComplete="off" value={message} onChange={handleChange} autoFocus></input>                              <button className="send" disabled={isSending}>
+                                <div className="circle">
+                                  {isSending ? (
+                                    // Loader element
+                                    <div className="loaderP2024SSX5"></div>
+                                  ) : (
+                                    // SVG icon when not sending
+                                    <svg style={{ ...(colors.dir === "rtl" && { transform: "rotate(260deg)" }), }} xmlns="http://www.w3.org/2000/svg" strokeWidth={1.5} width={28} fill="none" viewBox="0 0 20 20">
+                                      <path fill="currentColor" d="M15.44 1.68c.69-.05 1.47.08 2.13.74.66.67.8 1.45.75 2.14-.03.47-.15 1-.25 1.4l-.09.35a43.7 43.7 0 0 1-3.83 10.67A2.52 2.52 0 0 1 9.7 17l-1.65-3.03a.83.83 0 0 1 .14-1l3.1-3.1a.83.83 0 1 0-1.18-1.17l-3.1 3.1a.83.83 0 0 1-.99.14L2.98 10.3a2.52 2.52 0 0 1 .04-4.45 43.7 43.7 0 0 1 11.02-3.9c.4-.1.92-.23 1.4-.26Z"></path>
+                                    </svg>
+                                  )}
+                                </div>
+                              </button>
+                            </div>
+                          </form>
                         </div>
 
                         <div id='privacy-container-15645314545643sd5hgthjfgjh' dangerouslySetInnerHTML={{ __html: privacy }} />
@@ -1515,9 +1460,6 @@ top: -10px;
                 </div>
               </div>
             </div>
-
-
-
 
           </div>
           {
