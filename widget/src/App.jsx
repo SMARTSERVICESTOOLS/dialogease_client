@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { BASE_URL } from './base';
 import DOMPurify from 'dompurify';
-
 import Api from './Api';
+import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 
 function App({ keyProp }) {
+  const { transcript, listening, resetTranscript } = useSpeechRecognition();
   const audioRef = useRef(new Audio(BASE_URL + '/assets/whatsapp.mp3'));
   const [collapsed, setCollapsed] = useState(true);
   const [messages, setMessages] = useState([]);
@@ -24,7 +25,43 @@ function App({ keyProp }) {
   const [isHovered, setIsHovered] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [supported, setSupported] = useState(true);
+  const [recording, setRecording] = useState(false);
   const [timeZone, setTimeZone] = useState('');
+
+  useEffect(() => {
+    if (!SpeechRecognition.browserSupportsSpeechRecognition()) {
+      setSupported(false);
+      console.error("Your browser does not support speech recognition.");
+    }
+  }, []);
+
+  useEffect(() => {
+    setMessage(transcript);
+  }, [transcript]);
+
+
+  const handleStart = () => {
+    setRecording(true);
+    SpeechRecognition.startListening({ continuous: true, language: "fr-FR" });
+  };
+
+  const handleStop = () => {
+    SpeechRecognition.stopListening();
+    setTimeout(() => {
+      setRecording(false);
+    }, 100);
+  };
+
+
+  const handleRecording = () => {
+    if (listening) {
+      handleStop();
+    } else {
+      handleStart();
+    }
+  }
+
 
   const playAudio = () => {
     if (audioRef.current) {
@@ -36,7 +73,6 @@ function App({ keyProp }) {
   useEffect(() => {
     const detectedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     setTimeZone(detectedTimeZone);
-    console.log(detectedTimeZone)
   }, []);
 
   useEffect(() => {
@@ -71,6 +107,7 @@ function App({ keyProp }) {
       setIsSending(true);
       const msg = message;
       setMessages((prevMessages) => [...prevMessages, { role: 'user', content: msg }]);
+      resetTranscript();
       setMessage('');
       let idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
       if (!idConversation) {
@@ -104,6 +141,7 @@ function App({ keyProp }) {
   };
   const handleChange = (e) => {
     setMessage(e.target.value);
+    if (e.target.value.length == 0) resetTranscript();
   };
 
   const toggle = () => {
@@ -247,6 +285,7 @@ function App({ keyProp }) {
       }, 1000);
 
       try {
+        resetTranscript();
         const response = await Api.post(`sendMessage`, { idConversation, message: msg, role: 'user', keyProp });
         setMessages(response.data.data.message.original.messages);
         setIsSending(false);
@@ -531,8 +570,9 @@ right: 15px !important;
   overflow: hidden;
   white-space: nowrap;
   width: 200px;
-    display: flex;
-    
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .main-card${keyProp} .user-bar-Gkdshjgfkjdgf .status {
@@ -786,7 +826,7 @@ right: 15px !important;
   align-items: flex-end;
   overflow: hidden;
   height: 47px;
-  width: 100%;
+      width: calc(100% - 10px);
 background: #fff;
 padding:5px;
   
@@ -815,7 +855,7 @@ padding:5px;
   border: 0;
   flex: 1 1 auto;
   font-size: 16px;
-  margin: 0 2px;
+  margin: 0 5px;
   outline: none;
   min-width: 50px;
   padding: 0;
@@ -882,10 +922,17 @@ padding:5px;
   
 }
 
+  .main-card${keyProp} .Rec{
+	animation-name: pulse;
+	animation-duration: 1.5s;
+	animation-iteration-count: infinite;
+	animation-timing-function: linear;
+  background: red !important;
+}
+
+
 .main-card${keyProp} .conversation-compose .send .circle i {
   font-size: 24px;
-  
-
 }
 
 /* Small screen-Gkdshjgfkjdgfs */
@@ -956,7 +1003,7 @@ padding:5px;
       border-radius: 0px;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow-y: clip;
       right: 0;
       bottom: 0;
       position: absolute;
@@ -1167,7 +1214,7 @@ background-color: transparent;
   justify-content: center;
   position: absolute;
   z-index-2;
-  width: 100%;
+  width: calc(100% - 32px);
 }
 
  .main-card${keyProp} #privacy-container-15645314545643sd5hgthjfgjh a {
@@ -1288,192 +1335,232 @@ top: -10px;
               75%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 100%)}
               100% {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 0)}
           }
-      
 
   `;
 
   return (
-    <> {
-      !loading && <>
-        <style>{style}</style>
-        <div className={`card${keyProp}`} style={{ position: "static " }}>
-          <div className={`main-card${keyProp} ${collapsed ? `collapsed${keyProp}` : ''}`}>
-            {
-              collapsed &&
-              <div className={`${collapsed ? 'popDevgkdshjgfkjdgf' : ''}`}>
-                {isVisible && collapsed && (
+    <>
+      {
+        !loading && <>
+          <style>{style}</style>
+          <div className={`card${keyProp}`} style={{ position: "static " }}>
+            <div className={`main-card${keyProp} ${collapsed ? `collapsed${keyProp}` : ''}`}>
+              {
+                collapsed &&
+                <div className={`${collapsed ? 'popDevgkdshjgfkjdgf' : ''}`}>
+                  {isVisible && collapsed && (
+                    <div
+                      style={{
+                        backgroundColor: 'white',
+                        color: 'black',
+                        boxShadow: 'rgba(150, 150, 150, 0.2) 0px 10px 30px 0px, rgba(150, 150, 150, 0.2) 0px 0px 0px 1px',
+                        borderRadius: '10px',
+                        padding: '20px 0',
+                        margin: '0 0 20px 0',
+                        fontSize: '14px',
+                        opacity: 1,
+                        transform: 'scale(1)',
+                        transition: 'opacity 0.5s, transform 0.5s',
+                        cursor: 'pointer',
+                        position: 'relative'
+                      }}
+                      onMouseEnter={handleMouseEnter}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                      <span onClick={toggle} style={{ padding: "20px" }}>
+                        {initMessage}
+                      </span>
+                      {isHovered && (
+                        <svg
+                          onClick={hiddenInitMessage}
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          width={20}
+                          height={20}
+                          style={{
+                            position: 'absolute',
+                            top: '-15px',
+                            right: '-10px',
+                            width: '24px',
+                            height: '24px',
+                            cursor: 'pointer',
+                            backgroundColor: "#cbd5e1",
+                            color: "#1e293b",
+                            padding: "2px",
+                            borderRadius: "100%",
+                          }}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+
+                        </svg>
+                      )}
+                    </div>
+                  )}
                   <div
                     style={{
-                      backgroundColor: 'white',
-                      color: 'black',
-                      boxShadow: 'rgba(150, 150, 150, 0.2) 0px 10px 30px 0px, rgba(150, 150, 150, 0.2) 0px 0px 0px 1px',
-                      borderRadius: '10px',
-                      padding: '20px 0',
-                      margin: '0 0 20px 0',
-                      fontSize: '14px',
-                      opacity: 1,
-                      transform: 'scale(1)',
-                      transition: 'opacity 0.5s, transform 0.5s',
-                      cursor: 'pointer',
-                      position: 'relative'
+                      display: 'flex',
+                      justifyContent: 'end'
                     }}
-                    onMouseEnter={handleMouseEnter}
-                    onMouseLeave={handleMouseLeave}
                   >
-                    <span onClick={toggle} style={{ padding: "20px" }}>
-                      {initMessage}
-                    </span>
-                    {isHovered && (
-                      <svg
-                        onClick={hiddenInitMessage}
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        width={20}
-                        height={20}
-                        style={{
-                          position: 'absolute',
-                          top: '-15px',
-                          right: '-10px',
-                          width: '24px',
-                          height: '24px',
-                          cursor: 'pointer',
-                          backgroundColor: "#cbd5e1",
-                          color: "#1e293b",
-                          padding: "2px",
-                          borderRadius: "100%",
-                        }}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-
-                      </svg>
-                    )}
+                    <img
+                      src={BASE_URL + image}
+                      alt="avatar-Gkdshjgfkjdgf"
+                      onClick={toggle}
+                      className="popImg-Gkdshjgfkjdgf"
+                      style={{ cursor: 'pointer' }}
+                    />
                   </div>
-                )}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'end'
-                  }}
-                >
-                  <img
-                    src={BASE_URL + image}
-                    alt="avatar-Gkdshjgfkjdgf"
-                    onClick={toggle}
-                    className="popImg-Gkdshjgfkjdgf"
-                    style={{ cursor: 'pointer' }}
-                  />
+
                 </div>
-
-              </div>
-            }
+              }
 
 
-            <div className="page-Gkdshjgfkjdgf">
-              <div className="marvel-device-Gkdshjgfkjdgf nexus5-Gkdshjgfkjdgf">
+              <div className="page-Gkdshjgfkjdgf">
+                <div className="marvel-device-Gkdshjgfkjdgf nexus5-Gkdshjgfkjdgf">
 
-                <div className="screen-Gkdshjgfkjdgf">
-                  <div className="screen-container-Gkdshjgfkjdgf">
+                  <div className="screen-Gkdshjgfkjdgf">
+                    <div className="screen-container-Gkdshjgfkjdgf">
 
-                    <div className="chat">
-                      <div className="chat-container-Gkdshjgfkjdgf">
+                      <div className="chat">
+                        <div className="chat-container-Gkdshjgfkjdgf">
 
-                        <div className="user-bar-Gkdshjgfkjdgf">
-                          <div className="back">
+                          <div className="user-bar-Gkdshjgfkjdgf">
+                            <div className="back">
 
+                            </div>
+                            <div className="avatar-Gkdshjgfkjdgf" style={{ ...(colors.dir === "rtl" && { margin: "0 5px 0 5px" }), }}>
+                              <img src={BASE_URL + image} alt="avatar-Gkdshjgfkjdgf" />
+                            </div>
+                            <div className="name">
+                              <span>{name}</span>
+                            </div>
+                            <div className="actions-Gkdshjgfkjdgf" style={{ marginRight: "10px", cursor: 'pointer', ...(colors.dir === "rtl" && { margin: "0 71px 0 0" }), }}>
+                              <svg onClick={refresh} style={{ width: '25px', marginRight: '2px' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`${isSpinning ? 'spin' : ''}`} >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                              </svg>
+                              <svg onClick={toggle} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" width={30} height={30}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                              </svg>
+                            </div>
                           </div>
-                          <div className="avatar-Gkdshjgfkjdgf" style={{ ...(colors.dir === "rtl" && { margin: "0 5px 0 5px" }), }}>
-                            <img src={BASE_URL + image} alt="avatar-Gkdshjgfkjdgf" />
-                          </div>
-                          <div className="name">
-                            <span>{name}</span>
-                          </div>
-                          <div className="actions-Gkdshjgfkjdgf" style={{ marginRight: "10px", cursor: 'pointer', ...(colors.dir === "rtl" && { margin: "0 71px 0 0" }), }}>
-                            <svg onClick={refresh} style={{ width: '25px', marginRight: '2px' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`${isSpinning ? 'spin' : ''}`} >
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                            </svg>
-                            <svg onClick={toggle} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" width={30} height={30}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="conversation" >
-                          <div className="conversation-container-Gkdshjgfkjdgf" ref={messageEl}>
-                            {messages.map((msg, index) => (
-                              <div key={index} className={`message ${msg.role === 'user' ? 'sent' + colors.dir : 'received' + colors.dir}`}>
-                                <span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} />
-                              </div>
-                            ))}
-                            {
-                              isSending && <div key='isSending' className={`message ${'received' + colors.dir} `}>
-                                <div className="lds-ellipsis"><div></div><div></div><div></div><div></div></div>
-                              </div>
-                            }
+                          <div className="conversation" >
+                            <div className="conversation-container-Gkdshjgfkjdgf" ref={messageEl}>
+                              {messages.map((msg, index) => (
+                                <div key={index} className={`message ${msg.role === 'user' ? 'sent' + colors.dir : 'received' + colors.dir}`}>
+                                  <span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} />
+                                </div>
+                              ))}
+                              {
+                                isSending && <div key='isSending' className={`message ${'received' + colors.dir} `}>
+                                  <div className="lds-ellipsis"><div></div><div></div><div></div><div></div></div>
+                                </div>
+                              }
 
-                            {suggestedMessages.length > 0 && messages.length <= 1 &&
+                              {suggestedMessages.length > 0 && messages.length <= 1 &&
 
-                              <div className='messageS' style={{ marginTop: '10px' }}>
+                                <div className='messageS' style={{ marginTop: '10px' }}>
 
-                                <p style={{ color: "#676b73" }}>Les questions les plus posées :</p>
+                                  <p style={{ color: "#676b73" }}>Les questions les plus posées :</p>
+
+                                  {
+                                    suggestedMessages.map((suggestedMessage, index) =>
+                                      <span key={index} className='suggested-message' style={{ display: 'block', marginTop: "10px" }} onClick={() => Suggest(suggestedMessage)}>{suggestedMessage}</span>
+                                    )
+                                  }
+                                </div>}
+                            </div>
+
+
+
+                            <div className='suggestedMessagesDev'>
+                            </div>
+
+                            <form onSubmit={send}>
+                              <div className='conversation-compose'>
+                                <textarea style={{ resize: 'none' }} className="input-msg" name="input" placeholder={placeholder} autoComplete="off" value={message} onChange={handleChange} autoFocus
+                                  rows={2}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      send(e);
+                                    }
+                                  }}></textarea>
 
                                 {
-                                  suggestedMessages.map((suggestedMessage, index) =>
-                                    <span key={index} className='suggested-message' style={{ display: 'block', marginTop: "10px" }} onClick={() => Suggest(suggestedMessage)}>{suggestedMessage}</span>
-                                  )
+                                  supported && (message.length == 0 || recording) ?
+                                    <button type='button' className="send" disabled={isSending}
+                                      onClick={handleRecording}
+                                    >
+                                      {
+                                        listening ?
+                                          <div className="circle Rec">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width={28} strokeWidth={1.5} stroke="currentColor" >
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9v6m-4.5 0V9M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                            </svg>
+                                          </div> :
+                                          <>
+                                            {isSending ? (
+                                              // Loader element
+                                              <div className="circle">
+                                                <div className="loaderP2024SSX5"></div>
+                                              </div>
+                                            ) : (
+                                              <div className="circle">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={28}>
+                                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
+                                                </svg>
+                                              </div>
+                                            )}
+                                          </>
+
+                                      }
+
+                                    </button> :
+                                    <button className="send" disabled={isSending}>
+                                      <div className="circle">
+                                        {isSending ? (
+                                          // Loader element
+                                          <div className="loaderP2024SSX5"></div>
+                                        ) : (
+                                          <svg style={{ ...(colors.dir === "rtl" && { transform: "rotate(260deg)" }), }} xmlns="http://www.w3.org/2000/svg" strokeWidth={1.5} width={28} fill="none" viewBox="0 0 20 20">
+                                            <path fill="currentColor" d="M15.44 1.68c.69-.05 1.47.08 2.13.74.66.67.8 1.45.75 2.14-.03.47-.15 1-.25 1.4l-.09.35a43.7 43.7 0 0 1-3.83 10.67A2.52 2.52 0 0 1 9.7 17l-1.65-3.03a.83.83 0 0 1 .14-1l3.1-3.1a.83.83 0 1 0-1.18-1.17l-3.1 3.1a.83.83 0 0 1-.99.14L2.98 10.3a2.52 2.52 0 0 1 .04-4.45 43.7 43.7 0 0 1 11.02-3.9c.4-.1.92-.23 1.4-.26Z"></path>
+                                          </svg>
+                                        )}
+                                      </div>
+                                    </button>
+
                                 }
-                              </div>}
+
+                              </div>
+                            </form>
                           </div>
 
+                          <div id='privacy-container-15645314545643sd5hgthjfgjh' dangerouslySetInnerHTML={{ __html: privacy }} />
 
-
-                          <div className='suggestedMessagesDev'>
-                          </div>
-
-                          <form onSubmit={send}>
-                            <div className='conversation-compose'>
-                              <input className="input-msg" name="input" placeholder={placeholder} autoComplete="off" value={message} onChange={handleChange} autoFocus></input>                              <button className="send" disabled={isSending}>
-                                <div className="circle">
-                                  {isSending ? (
-                                    // Loader element
-                                    <div className="loaderP2024SSX5"></div>
-                                  ) : (
-                                    // SVG icon when not sending
-                                    <svg style={{ ...(colors.dir === "rtl" && { transform: "rotate(260deg)" }), }} xmlns="http://www.w3.org/2000/svg" strokeWidth={1.5} width={28} fill="none" viewBox="0 0 20 20">
-                                      <path fill="currentColor" d="M15.44 1.68c.69-.05 1.47.08 2.13.74.66.67.8 1.45.75 2.14-.03.47-.15 1-.25 1.4l-.09.35a43.7 43.7 0 0 1-3.83 10.67A2.52 2.52 0 0 1 9.7 17l-1.65-3.03a.83.83 0 0 1 .14-1l3.1-3.1a.83.83 0 1 0-1.18-1.17l-3.1 3.1a.83.83 0 0 1-.99.14L2.98 10.3a2.52 2.52 0 0 1 .04-4.45 43.7 43.7 0 0 1 11.02-3.9c.4-.1.92-.23 1.4-.26Z"></path>
-                                    </svg>
-                                  )}
-                                </div>
-                              </button>
-                            </div>
-                          </form>
                         </div>
-
-                        <div id='privacy-container-15645314545643sd5hgthjfgjh' dangerouslySetInnerHTML={{ __html: privacy }} />
-
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+
             </div>
+            {
+              !collapsed &&
+              <div className={`poweredBy${keyProp}`}>
+                <a style={{ display: 'flex', justifyContent: 'center', width: '100%', backgroundColor: '#e2e8f070' }} href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
+                  <img src={BASE_URL + '/images/logo.png'} style={{ width: '100px' }} />
+                </a>
+              </div>
+            }
 
           </div>
-          {
-            !collapsed &&
-            <div className={`poweredBy${keyProp}`}>
-              <a style={{ display: 'flex', justifyContent: 'center', width: '100%', backgroundColor: '#e2e8f070' }} href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
-                <img src={BASE_URL + '/images/logo.png'} style={{ width: '100px' }} />
-              </a>
-            </div>
-          }
-
-        </div>
-      </>
-    }
+        </>
+      }
 
     </>
   );

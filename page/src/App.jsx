@@ -2,14 +2,16 @@ import React, { useEffect, useState, useRef } from 'react';
 import { BASE_URL } from './base';
 import DOMPurify from 'dompurify';
 import Api from './Api';
+import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 
 function App({ keyProp, id }) {
+  const { transcript, listening, resetTranscript } = useSpeechRecognition();
   const audioRef = useRef(new Audio(BASE_URL + '/assets/whatsapp.mp3'));
   const [collapsed, setCollapsed] = useState(true);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
   const messageEl = useRef(null);
-  const [typing, setTyping] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [colors, setColors] = useState({});
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
@@ -20,8 +22,42 @@ function App({ keyProp, id }) {
   const elementRef = useRef(null);
   const [height, setHeight] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [supported, setSupported] = useState(true);
+  const [recording, setRecording] = useState(false);
   const [timeZone, setTimeZone] = useState('');
   const [initMessage, setIntMessage] = useState('');
+
+  useEffect(() => {
+    if (!SpeechRecognition.browserSupportsSpeechRecognition()) {
+      setSupported(false);
+      console.error("Your browser does not support speech recognition.");
+    }
+  }, []);
+
+  useEffect(() => {
+    setMessage(transcript);
+  }, [transcript]);
+
+  const handleStart = () => {
+    setRecording(true);
+    SpeechRecognition.startListening({ continuous: true, language: "fr-FR" });
+  };
+
+  const handleStop = () => {
+    SpeechRecognition.stopListening();
+    setTimeout(() => {
+      setRecording(false);
+    }, 100);
+  };
+
+  const handleRecording = () => {
+    if (listening) {
+      handleStop();
+    } else {
+      handleStart();
+    }
+  }
+
 
   const playAudio = () => {
     if (audioRef.current) {
@@ -32,39 +68,33 @@ function App({ keyProp, id }) {
   useEffect(() => {
     const detectedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     setTimeZone(detectedTimeZone);
-    console.log(detectedTimeZone)
   }, []);
 
   const send = async (e) => {
     e.preventDefault();
-    if (message.trim()) {
-      let idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
+    if (message.trim() && !isSending) {
+      setIsSending(true);
+      const msg = message;
+      setMessages((prevMessages) => [...prevMessages, { role: 'user', content: msg }]);
+      resetTranscript();
+      setMessage('');
+      let idConversation = sessionStorage.getItem('jsqhgdhshziqjlyruizeyryyueg');
       if (!idConversation) {
         await createConversations();
-        idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
+        idConversation = sessionStorage.getItem('jsqhgdhshziqjlyruizeyryyueg');
       }
-
-
-      setMessages((prevMessages) => [...prevMessages, { role: 'user', content: message }]);
-      const msg = message;
-      setMessage('');
-      setTimeout(() => {
-        setTyping(true);
-      }, 400);
-
       try {
         const response = await Api.post(`sendMessage`, { idConversation, message: msg, role: 'user', keyProp });
         setMessages(response.data.data.message.original.messages);
-        setTyping(false);
+
         playAudio();
       } catch (error) {
-
         if (error.response && error.response.status === 403) {
           getToken();
           try {
             const retryResponse = await Api.post('sendMessage', { idConversation, message: msg, role: 'user', keyProp });
             setMessages(retryResponse.data.data.message.original.messages);
-            setTyping(false);
+
             playAudio();
           } catch (retryError) {
             console.error('Error resending message:', retryError);
@@ -73,6 +103,8 @@ function App({ keyProp, id }) {
         } else {
           console.error('Error sending message:', error);
         }
+      } finally {
+        setIsSending(false);
       }
     }
   };
@@ -108,10 +140,10 @@ function App({ keyProp, id }) {
   function refresh() {
     setIsSpinning(true);
     setTimeout(() => {
-      sessionStorage.removeItem("ksdyughiqgfdukhysqguyh");
+      sessionStorage.removeItem("jsqhgdhshziqjlyruizeyryyueg");
       setMessages([{ role: 'assistant', content: initMessage }])
       setMessage('');
-      setTyping(false)
+      setIsSending(false)
       setIsSpinning(false)
     }, 1000);
   }
@@ -190,23 +222,24 @@ function App({ keyProp, id }) {
   }, [keyProp]);
 
   const Suggest = async (msg) => {
-    if (!typing) {
-      let idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
+    if (!isSending) {
+      let idConversation = sessionStorage.getItem('jsqhgdhshziqjlyruizeyryyueg');
       if (!idConversation) {
         await createConversations();
-        idConversation = sessionStorage.getItem('ksdyughiqgfdukhysqguyh');
+        idConversation = sessionStorage.getItem('jsqhgdhshziqjlyruizeyryyueg');
       }
 
 
       setMessages((prevMessages) => [...prevMessages, { role: 'user', content: msg }]);
       setTimeout(() => {
-        setTyping(true);
+        setIsSending(true);
       }, 1000);
 
       try {
+        resetTranscript();
         const response = await Api.post(`sendMessage`, { idConversation, message: msg, role: 'user', keyProp });
         setMessages(response.data.data.message.original.messages);
-        setTyping(false);
+        setIsSending(false);
         playAudio();
       } catch (error) {
         if (error.response && error.response.status === 403) {
@@ -214,7 +247,7 @@ function App({ keyProp, id }) {
           try {
             const retryResponse = await Api.post('sendMessage', { idConversation, message: msg, role: 'user', keyProp });
             setMessages(retryResponse.data.data.message.original.messages);
-            setTyping(false);
+            setIsSending(false);
             playAudio();
           } catch (retryError) {
             console.error('Error resending message:', retryError);
@@ -261,31 +294,26 @@ function App({ keyProp, id }) {
     return -0.1 * x + 90;
   }
 
+  useEffect(() => {
+    console.log(isSending);
+  }, [isSending])
 
 
   useEffect(() => {
 
     let ele = document.getElementById(id);
-
     // If elementRef is valid
     if (elementRef.current) {
       const elementHeight = elementRef.current.getBoundingClientRect().height;
-
       // Set a minimum height of 600px if the current height is less
       if (elementHeight < 600) {
         ele.style.height = '600px';
       }
-
       // Calculate the height (this will reflect after applying the min height)
       const newHeight = elementRef.current.getBoundingClientRect().height;
       setHeight(calcY(newHeight));
     }
-
-
-
   }, []);
-
-
 
   let style = `
 
@@ -329,43 +357,33 @@ function App({ keyProp, id }) {
 
     
 .main-card-iframe-${keyProp} .page-Gkdshjgfkjdgf {
- 
   width: 100%;
   height: 100%;
-   direction: ${colors.dir};
-  
+  direction: ${colors.dir};
 }
 
 .main-card-iframe-${keyProp} .marvel-device-Gkdshjgfkjdgf .screen-Gkdshjgfkjdgf {
- 
   text-align: left;
-  
 }
 
 .main-card-iframe-${keyProp} .screen-Gkdshjgfkjdgf-container {
- 
-   height: 100%;
-  
+  height: 100%;
 }
 
 /* Status Bar */
 
 .main-card-iframe-${keyProp} .status-bar {
- 
   height: 25px;
   background: #004e45;
   color: #fff;
   font-size: 14px;
   padding: 0 8px;
-  
 }
 
 .main-card-iframe-${keyProp} .status-bar:after {
- 
   content: "";
   display: table;
   clear: both;
-  
 }
 
 .main-card-iframe-${keyProp} .status-bar div {
@@ -652,7 +670,7 @@ function App({ keyProp, id }) {
   align-items: flex-end;
   overflow: hidden;
   height: 47px;
-  width: 100%;
+  width: calc(100% - 10px);
 background: #fff;
 padding:5px;
   
@@ -716,10 +734,10 @@ padding:5px;
       max-width: 400px;
       max-height: 600px;
       margin: 0px;
-      border-radius: 0 0 5px 5px;
+      border-radius: 0;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow: visible;
       box-shadow: 0 10px 16px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
     }
 
@@ -841,7 +859,7 @@ padding:5px;
   font-size: 0.8rem;
   color: #3339;
   justify-content: center;
-  width: 97%;
+  width: calc(100% - 32px);
   border-radius:0 0 5px 5px;
 }
 
@@ -941,6 +959,80 @@ top: -10px;
   animation: spin 1s linear infinite;
 }
 
+
+.main-card-iframe-${keyProp} .Rec{
+	animation-name: pulse;
+	animation-duration: 1.5s;
+	animation-iteration-count: infinite;
+	animation-timing-function: linear;
+  background: red !important;
+}
+
+
+
+@-webkit-keyframes pulse {
+  0% {
+    -webkit-box-shadow: 0 0 0 0 rgba(0,0,0, 0.5);
+  }
+  70% {
+      -webkit-box-shadow: 0 0 0 50px rgba(0,0,0, 0);
+  }
+  100% {
+      -webkit-box-shadow: 0 0 0 0 rgba(0,0,0, 0);
+  }
+}
+@keyframes pulse {
+  0% {
+    -moz-box-shadow: 0 0 0 0 rgba(0,0,0, 0.5);
+    box-shadow: 0 0 0 0 rgba(0,0,0, 0.4);
+  }
+  70% {
+      -moz-box-shadow: 0 0 0 50px rgba(0,0,0, 0);
+      box-shadow: 0 0 0 50px rgba(0,0,0, 0);
+  }
+  100% {
+      -moz-box-shadow: 0 0 0 0 rgba(0,0,0, 0);
+      box-shadow: 0 0 0 0 rgba(0,0,0, 0);
+  }
+}
+
+
+
+  .loaderP2024SSX5 {
+   width: 24px;
+            height: 24px !important;
+            border-radius: 50%;
+            position: relative;
+            transform:rotate(45deg);
+            background: #fff;
+ }
+ .loaderP2024SSX5:before{
+  content: "";
+            box-sizing: border-box;
+            position: absolute;
+            inset: 0px;
+            border-radius: 50%;
+            border:12px solid #${colors.primaryColor};
+            animation: prixClipFix 2s infinite linear;
+            }
+ @keyframes prixClipFix {
+              0%   {clip-path:polygon(50% 50%,0 0,0 0,0 0,0 0,0 0)}
+              25%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 0,100% 0,100% 0)}
+              50%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,100% 100%,100% 100%)}
+              75%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 100%)}
+              100% {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 0)}
+          }
+
+            .poweredBy${keyProp}{
+      width: 100% !important;
+      background-color: rgb(242 245 248);
+      border-bottom-right-radius: 8px;
+      border-bottom-left-radius: 8px;
+      box-shadow: 0 4px 1px rgba(0, 0, 0, 0.2), 0 8px 2px rgba(0, 0, 0, 0.19);
+          display: flex;
+    justify-content: center;
+     z-index: 999998;
+    }
   `;
 
   return (
@@ -979,7 +1071,7 @@ top: -10px;
                               </div>
                             ))}
                             {
-                              typing && <div key='typing' className={`message ${'received' + colors.dir} `}>
+                              isSending && <div key='isSending' className={`message ${'received' + colors.dir} `}>
                                 <div className="lds-ellipsis"><div></div><div></div><div></div><div></div></div>
                               </div>
                             }
@@ -1000,30 +1092,61 @@ top: -10px;
                           </div>
 
                           <div className='suggestedMessagesDev'>
-                            {
-                              // suggestedMessages.length ?
-                              //   <div className='suggested-messages-container'>
-                              //     {
-                              //       suggestedMessages.map((suggestedMessage, index) =>
-                              //         <span key={index} className='suggested-message' onClick={() => Suggest(suggestedMessage)}>{suggestedMessage}</span>
-                              //       )
-                              //     }
-                              //   </div> : ''
-                            }
                           </div>
 
                           <form onSubmit={send}>
 
                             <div className='conversation-compose'>
-                              <input className="input-msg" name="input" placeholder={placeholder} autoComplete="off" value={message} onChange={handleChange} autoFocus></input>
+                              <textarea style={{ resize: 'none' }} className="input-msg" name="input" placeholder={placeholder} autoComplete="off" value={message} onChange={handleChange} autoFocus
+                                rows={2}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    send(e);
+                                  }
+                                }}></textarea>
+                              {
+                                supported && (message.length == 0 || recording) ?
+                                  <button type='button' className="send" disabled={isSending}
+                                    onClick={handleRecording}
+                                  >
+                                    {
+                                      listening ?
+                                        <div className="circle Rec">
+                                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width={28} strokeWidth={1.5} stroke="currentColor" >
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9v6m-4.5 0V9M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                          </svg>
+                                        </div> :
+                                        <>
+                                          {isSending ? (
+                                            // Loader element
+                                            <div className="circle">
+                                              <div className="loaderP2024SSX5"></div>
+                                            </div>
+                                          ) : (
+                                            <div className="circle">
+                                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={28}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
+                                              </svg>
+                                            </div>
+                                          )}
+                                        </>
 
-                              <button className="send" disabled={typing}>
-                                <div className="circle">
+                                    }
 
-                                  <svg xmlns="http://www.w3.org/2000/svg" strokeWidth={1.5} width={28} fill="none" viewBox="0 0 20 20">
-                                    <path fill="currentColor" d="M15.44 1.68c.69-.05 1.47.08 2.13.74.66.67.8 1.45.75 2.14-.03.47-.15 1-.25 1.4l-.09.35a43.7 43.7 0 0 1-3.83 10.67A2.52 2.52 0 0 1 9.7 17l-1.65-3.03a.83.83 0 0 1 .14-1l3.1-3.1a.83.83 0 1 0-1.18-1.17l-3.1 3.1a.83.83 0 0 1-.99.14L2.98 10.3a2.52 2.52 0 0 1 .04-4.45 43.7 43.7 0 0 1 11.02-3.9c.4-.1.92-.23 1.4-.26Z"></path></svg>
-                                </div>
-                              </button>
+                                  </button> :
+                                  <button className="send" disabled={isSending}>
+                                    <div className="circle">
+                                      {isSending ? (
+                                        // Loader element
+                                        <div className="loaderP2024SSX5"></div>
+                                      ) : (
+                                        <svg style={{ ...(colors.dir === "rtl" && { transform: "rotate(260deg)" }), }} xmlns="http://www.w3.org/2000/svg" strokeWidth={1.5} width={28} fill="none" viewBox="0 0 20 20">
+                                          <path fill="currentColor" d="M15.44 1.68c.69-.05 1.47.08 2.13.74.66.67.8 1.45.75 2.14-.03.47-.15 1-.25 1.4l-.09.35a43.7 43.7 0 0 1-3.83 10.67A2.52 2.52 0 0 1 9.7 17l-1.65-3.03a.83.83 0 0 1 .14-1l3.1-3.1a.83.83 0 1 0-1.18-1.17l-3.1 3.1a.83.83 0 0 1-.99.14L2.98 10.3a2.52 2.52 0 0 1 .04-4.45 43.7 43.7 0 0 1 11.02-3.9c.4-.1.92-.23 1.4-.26Z"></path>
+                                        </svg>
+                                      )}
+                                    </div>
+                                  </button>
+                              }
                             </div>
 
                           </form>
@@ -1038,7 +1161,8 @@ top: -10px;
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', width: '400px', marginTop: '4px', backgroundColor: 'rgba(226, 232, 240, 0.44)' }}>
+            {/* <div style={{ display: 'flex', justifyContent: 'center', width: '400px', marginTop: '4px', backgroundColor: 'rgba(226, 232, 240, 0.44)' }}> */}
+            <div className={`poweredBy${keyProp}`}>
               <a href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
                 <img src={BASE_URL + '/images/logo.png'} style={{ width: '100px' }} />
               </a>
