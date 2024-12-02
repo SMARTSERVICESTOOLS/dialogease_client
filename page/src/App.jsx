@@ -187,6 +187,12 @@ function App({ keyProp, id }) {
       setName(response.data.name);
       setImage(response.data.image);
 
+      if (SpeechRecognition.browserSupportsSpeechRecognition()) {
+        var rec = response.data.isRecording == 1 ? true : false;
+        setSupported(rec);
+      }
+
+
       setSuggestedMessages(response.data.suggested_messages ?? []);
       setPrivacy(response.data.message_privacy);
 
@@ -677,7 +683,7 @@ padding:5px;
 }
 
 .main-card-iframe-${keyProp} .conversation-compose div,
-.conversation-compose input {
+.conversation-compose textarea {
   background: #fff;
   height: 100%;
   
@@ -693,7 +699,7 @@ padding:5px;
   outline: none;
   min-width: 50px;
   padding: 0;
-  
+  font-family: sans-serif;
 }
 
 
@@ -967,8 +973,6 @@ top: -10px;
 	animation-timing-function: linear;
   background: red !important;
 }
-
-
 
 @-webkit-keyframes pulse {
   0% {
