@@ -3,10 +3,14 @@ import { BASE_URL } from './base';
 import DOMPurify from 'dompurify';
 import Api from './Api';
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
-
+import { Howl } from 'howler';
 function App({ keyProp }) {
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
-  const audioRef = useRef(new Audio(BASE_URL + '/assets/whatsapp.mp3'));
+  const [soundSrc, setSoundSrc] = useState('');
+  const sound = new Howl({
+    src: [soundSrc],
+  });
+  const [isSound, setIsSound] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
@@ -23,11 +27,14 @@ function App({ keyProp }) {
   const [initMessage, setIntMessage] = useState('');
   const [isVisible, setIsVisible] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
+  const [isHoveredImg, setIsHoveredImg] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [supported, setSupported] = useState(true);
   const [recording, setRecording] = useState(false);
   const [timeZone, setTimeZone] = useState('');
+  const [position, setPosition] = useState('');
+  const [visibleImg, setVisibleImg] = useState(true);
 
   useEffect(() => {
     if (!SpeechRecognition.browserSupportsSpeechRecognition()) {
@@ -64,8 +71,8 @@ function App({ keyProp }) {
 
 
   const playAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.play();
+    if (isSound) {
+      sound.play();
     }
   };
 
@@ -100,6 +107,9 @@ function App({ keyProp }) {
 
   };
 
+  const hiddenPopImg = () => {
+    setVisibleImg(false);
+  };
 
   const send = async (e) => {
     e.preventDefault();
@@ -219,10 +229,26 @@ function App({ keyProp }) {
       });
   };
 
+  useEffect(() => {
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(
+      navigator.userAgent
+    );
+
+    if (isMobile) {
+      setIsHovered(true);
+      setIsHoveredImg(true);
+    }
+  }, []);
+
+
   const getChatColors = () => {
     Api.get(`getchatColors/${keyProp}`).then((response) => {
       setColors(JSON.parse(response.data.colors));
-      setName(response.data.name);
+      setPosition(JSON.parse(response.data.colors).position);
+      // setPosition('center');
+      setSoundSrc(response.data.soundSrc)
+      setIsSound(response.data.isSound)
+      setName(response.data.display_name ?? response.data.name);
       setImage(response.data.image);
 
       if (SpeechRecognition.browserSupportsSpeechRecognition()) {
@@ -380,7 +406,7 @@ function App({ keyProp }) {
     .poweredBy${keyProp}{
         position: fixed;
         bottom: 9px;
-        right: 15px;
+        right: ${position === 'center' ? 'calc(50% - 200px)' : position === 'start' ? 'calc(100% - 415px)' : '15px'};
         width: 400px;
         background-color: white;
         z-index: 999998;
@@ -396,9 +422,11 @@ function App({ keyProp }) {
         height: calc(100% - 32px) !important;
         /*border-radius: 8px !important;*/
         max-height: 600px; /*600px*/
-right: 15px !important;
-  bottom: 40px !important;
+        right: ${position === 'center' ? 'calc(50% - 200px)' : position === 'start' ? 'calc(100% - 415px)' : '15px'} !important;
+        bottom: 40px !important;
     }
+
+
 
     }
 
@@ -408,7 +436,7 @@ right: 15px !important;
       height: 0px !important;
       border-radius: 24px !important;
       margin: 16px !important;
-      
+      ${position === 'center' ? 'right: calc(50% - 30px) !important;' : position === 'start' ? 'right:calc(100% - 100px) !important' : ''}
     }
 
 
@@ -1153,7 +1181,13 @@ padding:5px;
       .main-card${keyProp} .popDevgkdshjgfkjdgf{
 position: fixed;
   bottom: 13px;
-  right: 25px;
+  ${position == 'center' ?
+      'left: 10%; right: 10%;' :
+      position === 'start' ?
+        'left: 25px;' :
+        ' right: 25px;'
+    }
+ 
   z-index: 999999;
 background-color: transparent;
   border-radius: 100%;
@@ -1346,7 +1380,7 @@ top: -10px;
   return (
     <>
       {
-        !loading && <>
+        !loading && visibleImg && <>
           <style>{style}</style>
           <div className={`card${keyProp}`} style={{ position: "static " }}>
             <div className={`main-card${keyProp} ${collapsed ? `collapsed${keyProp}` : ''}`}>
@@ -1354,30 +1388,85 @@ top: -10px;
                 collapsed &&
                 <div className={`${collapsed ? 'popDevgkdshjgfkjdgf' : ''}`}>
                   {isVisible && collapsed && (
-                    <div
-                      style={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        boxShadow: 'rgba(150, 150, 150, 0.2) 0px 10px 30px 0px, rgba(150, 150, 150, 0.2) 0px 0px 0px 1px',
-                        borderRadius: '10px',
-                        padding: '20px 0',
-                        margin: '0 0 20px 0',
-                        fontSize: '14px',
-                        opacity: 1,
-                        transform: 'scale(1)',
-                        transition: 'opacity 0.5s, transform 0.5s',
-                        cursor: 'pointer',
-                        position: 'relative'
-                      }}
-                      onMouseEnter={handleMouseEnter}
-                      onMouseLeave={handleMouseLeave}
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <div
+                        style={{
+                          backgroundColor: 'white',
+                          color: 'black',
+                          boxShadow: 'rgba(150, 150, 150, 0.2) 0px 10px 30px 0px, rgba(150, 150, 150, 0.2) 0px 0px 0px 1px',
+                          borderRadius: '10px',
+                          padding: '20px 0',
+                          margin: '0 0 20px 0',
+                          fontSize: '14px',
+                          opacity: 1,
+                          transform: 'scale(1)',
+                          transition: 'opacity 0.5s, transform 0.5s',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          minWidth: '260px',
+                          maxWidth: '300px',
+                        }}
+                        onMouseEnter={handleMouseEnter}
+                        onMouseLeave={handleMouseLeave}
+                      >
+                        <span onClick={toggle} style={{ padding: "20px" }}>
+                          {initMessage}
+                        </span>
+                        {isHovered && (
+                          <svg
+                            onClick={hiddenInitMessage}
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            width={20}
+                            height={20}
+                            style={{
+                              position: 'absolute',
+                              top: '-15px',
+                              right: '-10px',
+                              width: '24px',
+                              height: '24px',
+                              cursor: 'pointer',
+                              backgroundColor: "#cbd5e1",
+                              color: "#1e293b",
+                              padding: "2px",
+                              borderRadius: "100%",
+                            }}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: position,
+
+                    }}
+                  >
+                    <div style={{ position: 'relative', }}
+                      onMouseEnter={() => setIsHoveredImg(true)}
+                      onMouseLeave={() => setIsHoveredImg(false)}
                     >
-                      <span onClick={toggle} style={{ padding: "20px" }}>
-                        {initMessage}
-                      </span>
-                      {isHovered && (
+                      <img
+                        src={BASE_URL + image}
+                        alt="avatar-Gkdshjgfkjdgf"
+                        onClick={toggle}
+                        className="popImg-Gkdshjgfkjdgf"
+                        style={{ cursor: 'pointer', position: 'static', }}
+
+                      />
+                      {
+                        isHoveredImg &&
                         <svg
-                          onClick={hiddenInitMessage}
+                          onClick={hiddenPopImg}
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
                           fill="none"
@@ -1401,24 +1490,12 @@ top: -10px;
                           }}
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-
                         </svg>
-                      )}
+                      }
+
                     </div>
-                  )}
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'end'
-                    }}
-                  >
-                    <img
-                      src={BASE_URL + image}
-                      alt="avatar-Gkdshjgfkjdgf"
-                      onClick={toggle}
-                      className="popImg-Gkdshjgfkjdgf"
-                      style={{ cursor: 'pointer' }}
-                    />
+
+
                   </div>
 
                 </div>

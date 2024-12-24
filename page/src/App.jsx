@@ -3,10 +3,15 @@ import { BASE_URL } from './base';
 import DOMPurify from 'dompurify';
 import Api from './Api';
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
+import { Howl } from 'howler';
 
 function App({ keyProp, id }) {
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
-  const audioRef = useRef(new Audio(BASE_URL + '/assets/whatsapp.mp3'));
+  const [soundSrc, setSoundSrc] = useState('');
+  const sound = new Howl({
+    src: [soundSrc],
+  });
+  const [isSound, setIsSound] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
@@ -60,8 +65,8 @@ function App({ keyProp, id }) {
 
 
   const playAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.play();
+    if (isSound) {
+      sound.play();
     }
   };
 
@@ -184,7 +189,9 @@ function App({ keyProp, id }) {
   const getChatColors = () => {
     Api.get(`getchatColors/${keyProp}`).then((response) => {
       setColors(JSON.parse(response.data.colors));
-      setName(response.data.name);
+      setSoundSrc(response.data.soundSrc)
+      setIsSound(response.data.isSound)
+      setName(response.data.display_name ?? response.data.name);
       setImage(response.data.image);
 
       if (SpeechRecognition.browserSupportsSpeechRecognition()) {
