@@ -7,9 +7,6 @@ import { Howl } from 'howler';
 function App({ keyProp }) {
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
   const [soundSrc, setSoundSrc] = useState('');
-  const sound = new Howl({
-    src: [soundSrc],
-  });
   const [isSound, setIsSound] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
   const [messages, setMessages] = useState([]);
@@ -71,9 +68,15 @@ function App({ keyProp }) {
 
 
   const playAudio = () => {
+
+    const sound = new Howl({
+      src: [`${BASE_URL + soundSrc}`],
+    });
+
     if (isSound) {
       sound.play();
     }
+
   };
 
 
@@ -106,6 +109,22 @@ function App({ keyProp }) {
     sessionStorage.setItem('isVisible', JSON.stringify(false));
 
   };
+
+  useEffect(() => {
+
+    const url = new URL(window.location.href);
+
+    const queryParams = new URLSearchParams(url.search);
+
+    const allowedKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+
+    queryParams.forEach((value, key) => {
+      if (allowedKeys.includes(key)) {
+        sessionStorage.setItem(key, value);
+      }
+    });
+
+  }, []);
 
   const hiddenPopImg = () => {
     setVisibleImg(false);
@@ -173,8 +192,28 @@ function App({ keyProp }) {
 
   const createConversations = async () => {
     try {
-      const url = window.location.href;
-      const response = await Api.post(`createConversation`, { chat_id: keyProp, url, timezone: timeZone });
+
+
+      const url = new URL(window.location.href);
+
+      const allowedKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+
+      const queryParams = new URLSearchParams(new URL(url).search);
+
+      allowedKeys.forEach((key) => {
+        if (queryParams.has(key)) {
+          const value = queryParams.get(key);
+          url.searchParams.set(key, value);
+        } else {
+          const sessionValue = sessionStorage.getItem(key);
+          if (sessionValue) {
+            url.searchParams.set(key, sessionValue);
+          }
+        }
+      });
+
+
+      const response = await Api.post(`createConversation`, { chat_id: keyProp, url: url.toString(), timezone: timeZone });
       sessionStorage.setItem('ksdyughiqgfdukhysqguyh', response.data.id);
     } catch (error) {
       if (error.response && error.response.status === 403) {
@@ -245,7 +284,7 @@ function App({ keyProp }) {
     Api.get(`getchatColors/${keyProp}`).then((response) => {
       setColors(JSON.parse(response.data.colors));
       setPosition(JSON.parse(response.data.colors).position);
-      // setPosition('center');
+      // setPosition('start');
       setSoundSrc(response.data.soundSrc)
       setIsSound(response.data.isSound)
       setName(response.data.display_name ?? response.data.name);
@@ -403,17 +442,16 @@ function App({ keyProp }) {
 
 
     @media (min-width: 450px) {
-    .poweredBy${keyProp}{
-        position: fixed;
-        bottom: 9px;
-        right: ${position === 'center' ? 'calc(50% - 200px)' : position === 'start' ? 'calc(100% - 415px)' : '15px'};
-        width: 400px;
-        background-color: white;
-        z-index: 999998;
-        border-bottom-right-radius: 8px;
-        border-bottom-left-radius: 8px;
-        box-shadow: 0 4px 1px rgba(0, 0, 0, 0.2), 0 8px 2px rgba(0, 0, 0, 0.19);
-      }
+ 
+
+      .poweredBy${keyProp}{
+
+	width: 400px;
+	background-color: #e2e8f070;
+	border-bottom-right-radius: 8px;
+	border-bottom-left-radius: 8px;
+	margin-top: 29px;
+}
   
       .main-card${keyProp} {
        
@@ -421,9 +459,9 @@ function App({ keyProp }) {
         max-width: 400px;
         height: calc(100% - 32px) !important;
         /*border-radius: 8px !important;*/
-        max-height: 600px; /*600px*/
+        max-height: 632px; /*600px*/
         right: ${position === 'center' ? 'calc(50% - 200px)' : position === 'start' ? 'calc(100% - 415px)' : '15px'} !important;
-        bottom: 40px !important;
+        bottom: 15px !important;
     }
 
 
@@ -1033,7 +1071,7 @@ padding:5px;
       width: 100%;
       height: 100dvh;
       margin: 0px;
-      border-radius: 0px;
+      border-radius: 8px;
       display: flex;
       flex-direction: column;
       overflow-y: clip;
@@ -1243,7 +1281,7 @@ background-color: transparent;
 
  .main-card${keyProp} #privacy-container-15645314545643sd5hgthjfgjh {
   height: 1.8rem !important;      
-  background-color: #e2e8f070;   
+  background-color: #9FA5AD2D;   
   display: flex;                
   align-items: center;         
   padding-left: 1rem;          
@@ -1623,22 +1661,29 @@ top: -10px;
 
                           <div id='privacy-container-15645314545643sd5hgthjfgjh' dangerouslySetInnerHTML={{ __html: privacy }} />
 
+
+
                         </div>
+
                       </div>
+
                     </div>
+
                   </div>
+
                 </div>
+                {
+                  !collapsed &&
+                  <div className={`poweredBy${keyProp}`}>
+                    <a style={{ display: 'flex', justifyContent: 'center', width: '100%', backgroundColor: '#e2e8f070' }} href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
+                      <img src={BASE_URL + '/images/logo.png'} style={{ width: '100px' }} />
+                    </a>
+                  </div>
+                }
               </div>
 
             </div>
-            {
-              !collapsed &&
-              <div className={`poweredBy${keyProp}`}>
-                <a style={{ display: 'flex', justifyContent: 'center', width: '100%', backgroundColor: '#e2e8f070' }} href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
-                  <img src={BASE_URL + '/images/logo.png'} style={{ width: '100px' }} />
-                </a>
-              </div>
-            }
+
 
           </div>
         </>
