@@ -8,11 +8,7 @@ import { Howl } from 'howler';
 function App({ keyProp, id }) {
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
   const [soundSrc, setSoundSrc] = useState('');
-  const sound = new Howl({
-    src: [soundSrc],
-  });
   const [isSound, setIsSound] = useState(false);
-  const [collapsed, setCollapsed] = useState(true);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
   const messageEl = useRef(null);
@@ -22,6 +18,7 @@ function App({ keyProp, id }) {
   const [name, setName] = useState('');
   const [image, setImage] = useState('');
   const [placeholder, setPlaceholder] = useState('');
+  const [TitleSuggestedMessages, setTitleSuggestedMessages] = useState('');
   const [suggestedMessages, setSuggestedMessages] = useState([]);
   const [privacy, setPrivacy] = useState('');
   const elementRef = useRef(null);
@@ -65,6 +62,10 @@ function App({ keyProp, id }) {
 
 
   const playAudio = () => {
+    const sound = new Howl({
+      src: [`${BASE_URL + soundSrc}`],
+    });
+
     if (isSound) {
       sound.play();
     }
@@ -198,7 +199,7 @@ function App({ keyProp, id }) {
         var rec = response.data.isRecording == 1 ? true : false;
         setSupported(rec);
       }
-
+      setTitleSuggestedMessages(response.data.title_suggested_messages)
 
       setSuggestedMessages(response.data.suggested_messages ?? []);
       setPrivacy(response.data.message_privacy);
@@ -1091,7 +1092,7 @@ top: -10px;
 
                               <div className='messageS' style={{ marginTop: '10px' }}>
 
-                                <p style={{ color: "black" }}>Les questions les plus posées :</p>
+                                <p style={{ color: "#676b73" }}>{TitleSuggestedMessages}</p>
 
                                 {
                                   suggestedMessages.map((suggestedMessage, index) =>

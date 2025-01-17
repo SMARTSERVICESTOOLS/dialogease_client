@@ -20,6 +20,7 @@ function App({ keyProp }) {
   const [placeholder, setPlaceholder] = useState('');
   const [seconds, setSeconds] = useState(null);
   const [suggestedMessages, setSuggestedMessages] = useState([]);
+  const [TitleSuggestedMessages, setTitleSuggestedMessages] = useState('');
   const [privacy, setPrivacy] = useState('');
   const [initMessage, setIntMessage] = useState('');
   const [isVisible, setIsVisible] = useState(true);
@@ -289,6 +290,7 @@ function App({ keyProp }) {
       setIsSound(response.data.isSound)
       setName(response.data.display_name ?? response.data.name);
       setImage(response.data.image);
+      setTitleSuggestedMessages(response.data.title_suggested_messages)
 
       if (SpeechRecognition.browserSupportsSpeechRecognition()) {
         var rec = response.data.isRecording == 1 ? true : false;
@@ -1585,7 +1587,7 @@ top: -10px;
 
                                 <div className='messageS' style={{ marginTop: '10px' }}>
 
-                                  <p style={{ color: "#676b73" }}>Les questions les plus posées :</p>
+                                  <p style={{ color: "#676b73" }}>{ TitleSuggestedMessages}</p>
 
                                   {
                                     suggestedMessages.map((suggestedMessage, index) =>
