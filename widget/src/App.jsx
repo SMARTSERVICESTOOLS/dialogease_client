@@ -113,11 +113,19 @@ function App({ keyProp }) {
 
   useEffect(() => {
 
+    const referrer = document.referrer;
+    const referrerDomain = referrer ? new URL(referrer).hostname : '';
+
     const url = new URL(window.location.href);
 
     const queryParams = new URLSearchParams(url.search);
 
     const allowedKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+    var currentDomain = URL(url).hostname;
+    if (!queryParams.has('utm_source') && referrerDomain && referrerDomain !==  currentDomain) {
+	
+      sessionStorage.setItem('utm_source', referrerDomain);
+    }
 
     queryParams.forEach((value, key) => {
       if (allowedKeys.includes(key)) {
@@ -1587,7 +1595,7 @@ top: -10px;
 
                                 <div className='messageS' style={{ marginTop: '10px' }}>
 
-                                  <p style={{ color: "#676b73" }}>{ TitleSuggestedMessages}</p>
+                                  <p style={{ color: "#676b73" }}>{TitleSuggestedMessages}</p>
 
                                   {
                                     suggestedMessages.map((suggestedMessage, index) =>
