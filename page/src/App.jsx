@@ -135,7 +135,25 @@ function App({ keyProp, id }) {
 
   const createConversations = async () => {
     try {
-      const url = window.location.href;
+      
+      const url = new URL(window.location.href);
+
+      const allowedKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+
+      const queryParams = new URLSearchParams(new URL(url).search);
+
+      allowedKeys.forEach((key) => {
+        if (queryParams.has(key)) {
+          const value = queryParams.get(key);
+          url.searchParams.set(key, value);
+        } else {
+          const sessionValue = sessionStorage.getItem(key);
+          if (sessionValue) {
+            url.searchParams.set(key, sessionValue);
+          }
+        }
+      });
+
       const response = await Api.post(`createConversation`, { chat_id: keyProp, url, timezone: timeZone });
       sessionStorage.setItem('jsqhgdhshziqjlyruizeyryyueg', response.data.id);
     } catch (error) {
@@ -216,6 +234,29 @@ function App({ keyProp, id }) {
     });
   };
 
+
+  useEffect(() => {
+
+    const referrer = document.referrer;
+    const referrerDomain = referrer ? new URL(referrer).hostname : '';
+
+    const url = new URL(window.location.href);
+
+    const queryParams = new URLSearchParams(url.search);
+
+    const allowedKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+
+    if (!queryParams.has('utm_source') && referrerDomain) {
+      sessionStorage.setItem('utm_source', referrerDomain);
+    }
+
+    queryParams.forEach((value, key) => {
+      if (allowedKeys.includes(key)) {
+        sessionStorage.setItem(key, value);
+      }
+    });
+
+  }, []);
 
   useEffect(() => {
     // axios.defaults.withCredentials = true;
