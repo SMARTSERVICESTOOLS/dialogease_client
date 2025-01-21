@@ -121,8 +121,9 @@ function App({ keyProp }) {
     const queryParams = new URLSearchParams(url.search);
 
     const allowedKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
-
-    if (!queryParams.has('utm_source') && referrerDomain) {
+    var currentDomain = URL(url).hostname;
+    if (!queryParams.has('utm_source') && referrerDomain && referrerDomain !==  currentDomain) {
+	
       sessionStorage.setItem('utm_source', referrerDomain);
     }
 
