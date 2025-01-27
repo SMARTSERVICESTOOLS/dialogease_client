@@ -135,7 +135,7 @@ function App({ keyProp, id }) {
 
   const createConversations = async () => {
     try {
-      
+
       const url = new URL(window.location.href);
 
       const allowedKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
@@ -245,8 +245,9 @@ function App({ keyProp, id }) {
     const queryParams = new URLSearchParams(url.search);
 
     const allowedKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
-
-    if (!queryParams.has('utm_source') && referrerDomain) {
+    var currentDomain = URL(url).hostname;
+    if (!queryParams.has('utm_source') && referrerDomain && referrerDomain !== currentDomain) {
+      referrerDomain = referrerDomain.replace(/^www\./, "");
       sessionStorage.setItem('utm_source', referrerDomain);
     }
 
