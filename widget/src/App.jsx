@@ -122,8 +122,8 @@ function App({ keyProp }) {
 
     const allowedKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
     var currentDomain = URL(url).hostname;
-    if (!queryParams.has('utm_source') && referrerDomain && referrerDomain !==  currentDomain) {
-	
+    if (!queryParams.has('utm_source') && referrerDomain && referrerDomain !== currentDomain) {
+      referrerDomain = referrerDomain.replace(/^www\./, "");
       sessionStorage.setItem('utm_source', referrerDomain);
     }
 
