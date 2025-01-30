@@ -238,14 +238,14 @@ function App({ keyProp, id }) {
   useEffect(() => {
 
     const referrer = document.referrer;
-    const referrerDomain = referrer ? new URL(referrer).hostname : '';
+    let referrerDomain = referrer ? new URL(referrer).hostname : '';
 
     const url = new URL(window.location.href);
 
     const queryParams = new URLSearchParams(url.search);
 
     const allowedKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
-    var currentDomain = URL(url).hostname;
+    var currentDomain = new URL(url).hostname;
     if (!queryParams.has('utm_source') && referrerDomain && referrerDomain !== currentDomain) {
       referrerDomain = referrerDomain.replace(/^www\./, "");
       sessionStorage.setItem('utm_source', referrerDomain);
