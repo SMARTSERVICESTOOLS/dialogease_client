@@ -392,6 +392,30 @@ function App({ keyProp }) {
     // Remove 【number:number†source】 pattern
     content = content.replace(/【\d+:\d+†source】/g, '');
 
+    const regex = /```json(.*?)```/s;
+
+    var jsonData = content.match(regex);
+
+    if (jsonData) {
+      jsonData = jsonData[1].trim();
+      const parsedData = JSON.parse(jsonData)['ads'];
+
+      let jsonToHtml = `<div>`;
+
+      parsedData.forEach(data => {
+        jsonToHtml += `<a   class="jsonParent"  ${data.url ? `href="${data.url}" target="_blank"` : ''} >
+     ${data.image ? `<img src="${data.image}" />` : ''}
+      <div>${data.title}</div>
+      </a>`;
+      });
+
+      jsonToHtml += `</div>`;
+
+      content = content.replace(regex, jsonToHtml);
+    }
+
+
+
     // Replace new line characters with <br /> tags
     let formattedContent = content.replace(/\n/g, '<br />');
 
@@ -863,7 +887,21 @@ function App({ keyProp }) {
 }
 
 
+.main-card-iframe-${keyProp} .jsonParent {
+	display: flex;
+	align-items: center;
+	margin-bottom: 15px;
+	background-color: aliceblue;
+	border-radius: 5px;
+  min-height: 60px;
+}
 
+.main-card-iframe-${keyProp} .jsonParent > img {
+	height: 90px;
+	width: 90px;
+	margin-right: 10px;
+	border-radius: 5px;
+}
 
 .message.receivedrtl {
  
