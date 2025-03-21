@@ -390,30 +390,44 @@ function App({ keyProp }) {
 
   function formatContent(content) {
     // Remove 【number:number†source】 pattern
+    console.log(content)
     content = content.replace(/【\d+:\d+†source】/g, '');
+    content = content.replace(/json/g, '');
 
-    const regex = /```json(.*?)```/s;
+    const firstOpen = content.indexOf('{');
+    const lastClose = content.lastIndexOf('}');
 
-    var jsonData = content.match(regex);
+    let jsonData = null;
+    let jsonString = null;
 
-    if (jsonData) {
-      jsonData = jsonData[1].trim();
-      const parsedData = JSON.parse(jsonData)['ads'];
+    if (firstOpen !== -1 && lastClose !== -1 && firstOpen < lastClose) {
+      jsonString = content.slice(firstOpen, lastClose + 1);
+      try {
+        jsonData = JSON.parse(jsonString);
+      } catch (e) {
+        console.error('Erreur lors de l\'analyse du JSON :', e);
+      }
+    }
+
+
+    if (jsonData && jsonData.ads && jsonString) {
+      console.log(jsonData['ads'])
+      // jsonData = jsonData[1].trim();
+      const parsedData = jsonData['ads'];
 
       let jsonToHtml = `<div>`;
 
       parsedData.forEach(data => {
         jsonToHtml += `<a   class="jsonParent"  ${data.url ? `href="${data.url}" target="_blank"` : ''} >
-     ${data.image ? `<img src="${data.image}" />` : ''}
-      <div>${data.title}</div>
-      </a>`;
+         ${data.image ? `<img src="${data.image}" />` : ''}
+          <div>${data.title}</div>
+          </a>`;
       });
 
       jsonToHtml += `</div>`;
 
-      content = content.replace(regex, jsonToHtml);
+      content = content.replace(jsonString, jsonToHtml);
     }
-
 
 
     // Replace new line characters with <br /> tags
@@ -431,7 +445,7 @@ function App({ keyProp }) {
     formattedContent = formattedContent.replace(/~~(.*?)~~/g, '<del>$1</del>');
 
     // Links ([link text](URL))
-    formattedContent = formattedContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a class="a-link" href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    formattedContent = formattedContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a class="a-link" href="$2" target="_blank">$1</a>');
 
     // Inline code (backticks)
     formattedContent = formattedContent.replace(/`(.*?)`/g, '<code>$1</code>');
