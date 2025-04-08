@@ -390,30 +390,44 @@ function App({ keyProp }) {
 
   function formatContent(content) {
     // Remove 【number:number†source】 pattern
+    console.log(content)
     content = content.replace(/【\d+:\d+†source】/g, '');
+    content = content.replace(/json/g, '');
 
-    const regex = /```json(.*?)```/s;
+    const firstOpen = content.indexOf('{');
+    const lastClose = content.lastIndexOf('}');
 
-    var jsonData = content.match(regex);
+    let jsonData = null;
+    let jsonString = null;
 
-    if (jsonData) {
-      jsonData = jsonData[1].trim();
-      const parsedData = JSON.parse(jsonData)['ads'];
+    if (firstOpen !== -1 && lastClose !== -1 && firstOpen < lastClose) {
+      jsonString = content.slice(firstOpen, lastClose + 1);
+      try {
+        jsonData = JSON.parse(jsonString);
+      } catch (e) {
+        console.error('Erreur lors de l\'analyse du JSON :', e);
+      }
+    }
+
+
+    if (jsonData && jsonData.ads && jsonString) {
+      console.log(jsonData['ads'])
+      // jsonData = jsonData[1].trim();
+      const parsedData = jsonData['ads'];
 
       let jsonToHtml = `<div>`;
 
       parsedData.forEach(data => {
         jsonToHtml += `<a   class="jsonParent"  ${data.url ? `href="${data.url}" target="_blank"` : ''} >
-     ${data.image ? `<img src="${data.image}" />` : ''}
-      <div>${data.title}</div>
-      </a>`;
+         ${data.image ? `<img src="${data.image}" />` : ''}
+          <div>${data.title}</div>
+          </a>`;
       });
 
       jsonToHtml += `</div>`;
 
-      content = content.replace(regex, jsonToHtml);
+      content = content.replace(jsonString, jsonToHtml);
     }
-
 
 
     // Replace new line characters with <br /> tags
@@ -431,7 +445,7 @@ function App({ keyProp }) {
     formattedContent = formattedContent.replace(/~~(.*?)~~/g, '<del>$1</del>');
 
     // Links ([link text](URL))
-    formattedContent = formattedContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a class="a-link" href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    formattedContent = formattedContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a class="a-link" href="$2" target="_blank">$1</a>');
 
     // Inline code (backticks)
     formattedContent = formattedContent.replace(/`(.*?)`/g, '<code>$1</code>');
@@ -446,8 +460,8 @@ function App({ keyProp }) {
   let style = `
 
 
-  .main-card${keyProp} *{
-  all:revert-layer;
+  .main-card${keyProp} *:not(path):not(svg) {
+  all:revert;
   }
 
   .a-link {
@@ -526,7 +540,7 @@ function App({ keyProp }) {
   width: 100%;
   height: 100dvh;
    direction: ${colors.dir};
-  
+  background: #9FA5AD66;
 }
 
 .main-card${keyProp} .marvel-device-Gkdshjgfkjdgf .screen-Gkdshjgfkjdgf {
@@ -1014,7 +1028,7 @@ padding:5px;
   
 }
 
-.main-card${keyProp} .conversation-compose .send {
+.main-card${keyProp} .conversation-compose .send${keyProp} {
   background: transparent;
   border: 0;
   cursor: pointer;
@@ -1028,7 +1042,7 @@ padding:5px;
   
 }
 
-.main-card${keyProp} .conversation-compose .send .circle {
+.main-card${keyProp} .conversation-compose .send${keyProp} .circle {
   background:  #${colors.primaryColor};
   border-radius: 50%;
   color: #${colors.secondaryColor};
@@ -1050,7 +1064,7 @@ padding:5px;
 }
 
 
-.main-card${keyProp} .conversation-compose .send .circle i {
+.main-card${keyProp} .conversation-compose .send${keyProp} .circle i {
   font-size: 24px;
 }
 
@@ -1329,7 +1343,7 @@ background-color: transparent;
 
  .main-card${keyProp} #privacy-container-15645314545643sd5hgthjfgjh {
   height: 1.8rem !important;      
-  background-color: #9FA5AD2D;   
+  background-color: transparent;   
   display: flex;                
   align-items: center;         
   padding-left: 1rem;          
@@ -1504,7 +1518,7 @@ top: -10px;
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
                             fill="none"
-                            stroke="currentColor"
+                            stroke={"#" + colors.secondaryColor}
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -1556,7 +1570,7 @@ top: -10px;
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
                           fill="none"
-                          stroke="currentColor"
+                          stroke={"#" + colors.secondaryColor}
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -1608,10 +1622,10 @@ top: -10px;
                               <span>{name}</span>
                             </div>
                             <div className="actions-Gkdshjgfkjdgf" style={{ marginRight: "10px", cursor: 'pointer', ...(colors.dir === "rtl" && { margin: "0 71px 0 0" }), }}>
-                              <svg onClick={refresh} style={{ width: '25px', marginRight: '2px' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`${isSpinning ? 'spin' : ''}`} >
+                              <svg onClick={refresh} style={{ width: '25px', marginRight: '2px' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke={"#" + colors.secondaryColor} className={`${isSpinning ? 'spin' : ''}`} >
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
                               </svg>
-                              <svg onClick={toggle} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" width={30} height={30}>
+                              <svg onClick={toggle} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke={"#" + colors.secondaryColor} width={30} height={30}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                               </svg>
                             </div>
@@ -1660,13 +1674,13 @@ top: -10px;
 
                                 {
                                   supported && (message.length == 0 || recording) ?
-                                    <button type='button' className="send" disabled={isSending}
+                                    <button type='button' className={"send" + keyProp} disabled={isSending}
                                       onClick={handleRecording}
                                     >
                                       {
                                         listening ?
                                           <div className="circle Rec">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width={28} strokeWidth={1.5} stroke="currentColor" >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width={28} strokeWidth={1.5} stroke={"#" + colors.secondaryColor} >
                                               <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9v6m-4.5 0V9M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                             </svg>
                                           </div> :
@@ -1678,7 +1692,7 @@ top: -10px;
                                               </div>
                                             ) : (
                                               <div className="circle">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={28}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill={"#" + colors.secondaryColor} viewBox="0 0 24 24" strokeWidth={1.5} stroke={"#" + colors.secondaryColor} width={28}>
                                                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
                                                 </svg>
                                               </div>
@@ -1688,14 +1702,14 @@ top: -10px;
                                       }
 
                                     </button> :
-                                    <button className="send" disabled={isSending}>
+                                    <button className={"send" + keyProp} disabled={isSending}>
                                       <div className="circle">
                                         {isSending ? (
                                           // Loader element
                                           <div className="loaderP2024SSX5"></div>
                                         ) : (
-                                          <svg style={{ ...(colors.dir === "rtl" && { transform: "rotate(260deg)" }), }} xmlns="http://www.w3.org/2000/svg" strokeWidth={1.5} width={28} fill="none" viewBox="0 0 20 20">
-                                            <path fill="currentColor" d="M15.44 1.68c.69-.05 1.47.08 2.13.74.66.67.8 1.45.75 2.14-.03.47-.15 1-.25 1.4l-.09.35a43.7 43.7 0 0 1-3.83 10.67A2.52 2.52 0 0 1 9.7 17l-1.65-3.03a.83.83 0 0 1 .14-1l3.1-3.1a.83.83 0 1 0-1.18-1.17l-3.1 3.1a.83.83 0 0 1-.99.14L2.98 10.3a2.52 2.52 0 0 1 .04-4.45 43.7 43.7 0 0 1 11.02-3.9c.4-.1.92-.23 1.4-.26Z"></path>
+                                          <svg style={{ ...(colors.dir === "rtl" && { transform: "rotate(260deg)" }), }} xmlns="http://www.w3.org/2000/svg" strokeWidth={1.5} width={28} fill={"#" + colors.secondaryColor} viewBox="0 0 20 20">
+                                            <path fill={"#" + colors.secondaryColor} d="M15.44 1.68c.69-.05 1.47.08 2.13.74.66.67.8 1.45.75 2.14-.03.47-.15 1-.25 1.4l-.09.35a43.7 43.7 0 0 1-3.83 10.67A2.52 2.52 0 0 1 9.7 17l-1.65-3.03a.83.83 0 0 1 .14-1l3.1-3.1a.83.83 0 1 0-1.18-1.17l-3.1 3.1a.83.83 0 0 1-.99.14L2.98 10.3a2.52 2.52 0 0 1 .04-4.45 43.7 43.7 0 0 1 11.02-3.9c.4-.1.92-.23 1.4-.26Z"></path>
                                           </svg>
                                         )}
                                       </div>
