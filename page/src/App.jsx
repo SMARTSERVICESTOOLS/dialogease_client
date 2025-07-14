@@ -655,7 +655,7 @@ function App({ keyProp, id }) {
 .main-card-iframe-${keyProp} .conversation .conversation-container-Gkdshjgfkjdgf {
  
   height: calc(100% -  ${suggestedMessages.length ? '60' : '60'}px);
-  box-shadow: inset 0 10px 10px -10px #000000;
+  /* box-shadow: inset 0 10px 10px -10px #000000; */
   overflow-x: auto;
   padding: 0 16px;
   margin-bottom: 5px;
@@ -788,6 +788,10 @@ function App({ keyProp, id }) {
   top: 0;
   left: -10px;
   
+}
+
+.message * {
+  line-height :3rem;
 }
 
 
@@ -1151,12 +1155,12 @@ top: -10px;
               100% {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 0)}
           }
 
-            .poweredBy${keyProp}{
+            .poweredBy${keyProp}Page{
       width: 100% !important;
       background-color: rgb(242 245 248);
       border-bottom-right-radius: 8px;
       border-bottom-left-radius: 8px;
-      box-shadow: 0 4px 1px rgba(0, 0, 0, 0.2), 0 8px 2px rgba(0, 0, 0, 0.19);
+      /* box-shadow: 0 4px 1px rgba(0, 0, 0, 0.2), 0 8px 2px rgba(0, 0, 0, 0.19); */
           display: flex;
     justify-content: center;
      z-index: 999998;
@@ -1282,7 +1286,7 @@ top: -10px;
                         </div>
 
                         <div id='privacy-container-15645314545643sd5hgthjfgjh' dangerouslySetInnerHTML={{ __html: privacy }} />
-                        <div className={`poweredBy${keyProp}`}>
+                        <div className={`poweredBy${keyProp}Page`}>
                           <a href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
                             <img src={BASE_URL + '/images/logo.png'} style={{ width: '100px' }} />
                           </a>
@@ -1295,7 +1299,7 @@ top: -10px;
             </div>
 
             {/* <div style={{ display: 'flex', justifyContent: 'center', width: '400px', marginTop: '4px', backgroundColor: 'rgba(226, 232, 240, 0.44)' }}> */}
-            {/* <div className={`poweredBy${keyProp}`}>
+            {/* <div className={`poweredBy${keyProp}Page`}>
               <a href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
                 <img src={BASE_URL + '/images/logo.png'} style={{ width: '100px' }} />
               </a>

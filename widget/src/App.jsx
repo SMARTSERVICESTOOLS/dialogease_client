@@ -1451,12 +1451,12 @@ top: -10px;
 
 
   .loaderP2024SSX5 {
-   width: 24px;
+   width: 24px !important;
             height: 24px !important;
-            border-radius: 50%;
-            position: relative;
-            transform:rotate(45deg);
-            background: #fff;
+            border-radius: 50% !important;
+            position: relative !important;
+            transform:rotate(45deg) !important;
+            background: #fff !important;
  }
  .loaderP2024SSX5:before{
   content: "";
