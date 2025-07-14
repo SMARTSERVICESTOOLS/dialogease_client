@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import Api from './Api';
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 import { Howl } from 'howler';
+import Markdown from 'marked-react';
 
 function App({ keyProp, id }) {
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
@@ -315,7 +316,7 @@ function App({ keyProp, id }) {
     }
   };
 
-  function formatContent(content) {
+  function formatContentOld(content) {
     // Remove 【number:number†source】 pattern
     console.log(content)
     content = content.replace(/【\d+:\d+†source】/g, '');
@@ -383,14 +384,28 @@ function App({ keyProp, id }) {
     });
   }
 
-
+  function formatContent(content) {
+    const rawHtml = marked.parse(content);
+    // Sanitize the formatted content to prevent XSS attacks
+    return DOMPurify.sanitize(rawHtml, {
+      ADD_ATTR: ['target']
+    });
+  }
   function calcY(x) {
-    return -0.1 * x + 90;
+    console.log(x)
+    return -0.1 * x + 90 - 7;
   }
 
+
+  const [pageHeight, setPageHeight] = useState(0);
+
   useEffect(() => {
-    console.log(isSending);
-  }, [isSending])
+    const appPage = document.getElementById(id);
+    const parent = appPage?.parentElement;
+    const parentHeight = parent?.getBoundingClientRect().height || 0;
+    const dvh = window.visualViewport?.height || window.innerHeight;
+    setPageHeight(Math.min(parentHeight, (dvh - 50)));
+  }, []);
 
 
   useEffect(() => {
@@ -398,14 +413,17 @@ function App({ keyProp, id }) {
     let ele = document.getElementById(id);
     // If elementRef is valid
     if (elementRef.current) {
-      const elementHeight = elementRef.current.getBoundingClientRect().height;
-      // Set a minimum height of 600px if the current height is less
-      if (elementHeight < 600) {
-        ele.style.height = '600px';
-      }
+      // const elementHeight = elementRef.current.getBoundingClientRect().height;
+      // // Set a minimum height of 600px if the current height is less
+      // if (elementHeight < 600) {
+      //   ele.style.height = '600px';
+      // }
       // Calculate the height (this will reflect after applying the min height)
-      const newHeight = elementRef.current.getBoundingClientRect().height;
-      setHeight(calcY(newHeight));
+      // Set height to 100% with !important
+      elementRef.current.style.setProperty('height', '100%', 'important');
+
+      // const newHeight = elementRef.current.getBoundingClientRect().height;
+      // setHeight(calcY(newHeight));
     }
   }, []);
 
@@ -447,6 +465,7 @@ function App({ keyProp, id }) {
   height: 100%;
   display: flex;
   justify-content: center;
+  margin-bottom: 10rem;
 }
 
     
@@ -534,11 +553,10 @@ function App({ keyProp, id }) {
   font-size: 24px;
   position: relative;
   z-index: 1;
-    border-radius: 5px 5px 0 0;
-    display:flex;
+  border-radius: 5px 5px 0 0;
+  display:flex;
   align-items: start;
-  
-}
+ }
 
 .main-card-iframe-${keyProp} .user-bar-Gkdshjgfkjdgf:after {
  
@@ -842,8 +860,9 @@ padding:5px;
     .main-card-iframe-${keyProp} {
       background: transparent;
       color: white;
-      max-width: 400px;
-      max-height: 600px;
+      min-width: 400px;
+      min-height: 600px;
+      height: ${pageHeight}px;
       margin: 0px;
       border-radius: 0;
       display: flex;
@@ -854,7 +873,7 @@ padding:5px;
 
  @media (min-width: 450px) {
    .main-card-iframe-${keyProp} {
-      width: 450px;
+      width: 100%;
     }
  }
 
@@ -961,16 +980,16 @@ padding:5px;
 }
 
  .main-card-iframe-${keyProp} #privacy-container-15645314545643sd5hgthjfgjh {
-  height: 1.8rem !important;      
-  background-color: #e2e8f070;   
+  min-height: 1.8rem !important;      
+  background-color: rgb(242 245 248);   
   display: flex;                
   align-items: center;         
-  padding-left: 1rem;          
-  padding-right: 1rem;         
+  padding-left: 0rem;          
+  padding-right: 0rem;         
   font-size: 0.8rem;
   color: #3339;
   justify-content: center;
-  width: calc(100% - 32px);
+  width: 100% ;
   border-radius:0 0 5px 5px;
 }
 
@@ -1156,17 +1175,17 @@ top: -10px;
                   <div className="screen-container-Gkdshjgfkjdgf" style={{ height: '100%' }}>
                     <div className="chat">
                       <div className="chat-container-Gkdshjgfkjdgf">
-                        <div className="user-bar-Gkdshjgfkjdgf">
-                          <div className="back">
+                        <div className="user-bar-Gkdshjgfkjdgf" style={{ justifyContent: "space-between" }}>
+                          <div className='user-bar-Gkdshjgfkjdgf' style={{ width: "100%" }}>
+                            <div className="avatar-Gkdshjgfkjdgf">
+                              <img src={BASE_URL + image} alt="avatar-Gkdshjgfkjdgf" />
+                            </div>
+                            <div className="name">
+                              <span>{name}</span>
+                            </div>
+                          </div>
 
-                          </div>
-                          <div className="avatar-Gkdshjgfkjdgf">
-                            <img src={BASE_URL + image} alt="avatar-Gkdshjgfkjdgf" />
-                          </div>
-                          <div className="name">
-                            <span>{name}</span>
-                          </div>
-                          <div className="actions-Gkdshjgfkjdgf" style={{ marginRight: "0rem", cursor: 'pointer', marginLeft: '0rem' }}>
+                          <div className="actions-Gkdshjgfkjdgf" style={{ marginRight: "0rem", cursor: 'pointer', marginLeft: '0rem', minWidth: "40px" }}>
                             <svg onClick={refresh} style={{ width: '25px', marginRight: '2px' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`${isSpinning ? 'spin' : ''}`} >
                               <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
                             </svg>
@@ -1175,8 +1194,9 @@ top: -10px;
                         <div className="conversation" >
                           <div className="conversation-container-Gkdshjgfkjdgf" ref={messageEl}>
                             {messages.map((msg, index) => (
-                              <div key={index} className={`message ${msg.role === 'user' ? 'sent' + colors.dir : 'received' + colors.dir}`}>
-                                <span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} />
+                              <div key={index} dir={colors.dir} className={`message ${msg.role === 'user' ? 'sent' + colors.dir : 'received' + colors.dir}`}>
+                                {/* <span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} /> */}
+                                <Markdown>{msg.content}</Markdown>
                               </div>
                             ))}
                             {
@@ -1262,7 +1282,11 @@ top: -10px;
                         </div>
 
                         <div id='privacy-container-15645314545643sd5hgthjfgjh' dangerouslySetInnerHTML={{ __html: privacy }} />
-
+                        <div className={`poweredBy${keyProp}`}>
+                          <a href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
+                            <img src={BASE_URL + '/images/logo.png'} style={{ width: '100px' }} />
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1271,11 +1295,11 @@ top: -10px;
             </div>
 
             {/* <div style={{ display: 'flex', justifyContent: 'center', width: '400px', marginTop: '4px', backgroundColor: 'rgba(226, 232, 240, 0.44)' }}> */}
-            <div className={`poweredBy${keyProp}`}>
+            {/* <div className={`poweredBy${keyProp}`}>
               <a href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
                 <img src={BASE_URL + '/images/logo.png'} style={{ width: '100px' }} />
               </a>
-            </div>
+            </div> */}
 
           </div>
 
