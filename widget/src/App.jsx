@@ -1548,7 +1548,7 @@ top: -10px;
                     style={{
                       display: 'flex',
                       justifyContent: position,
-
+                      direction: "ltr",
                     }}
                   >
                     <div style={{ position: 'relative', }}
@@ -1723,8 +1723,6 @@ top: -10px;
 
                           <div id='privacy-container-15645314545643sd5hgthjfgjh' dangerouslySetInnerHTML={{ __html: privacy }} />
 
-
-
                         </div>
 
                       </div>
@@ -1737,7 +1735,7 @@ top: -10px;
                 {
                   !collapsed &&
                   <div className={`poweredBy${keyProp}`}>
-                    <a style={{ display: 'flex', justifyContent: 'center', width: '100%', backgroundColor: '#e2e8f070' }} href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
+                    <a style={{ display: 'flex', justifyContent: 'center', width: '100%', backgroundColor: '#e2e8f070', marginTop: privacy ? '1.5rem' : '1rem' }} href={`https://dialogease.com?utm_campaign=${window.location.hostname}&utm_source=powered-by&utm_medium=chatbot`} target='_blank' rel="noopener noreferrer">
                       <img src={BASE_URL + '/images/logo.png'} style={{ width: '100px' }} />
                     </a>
                   </div>
