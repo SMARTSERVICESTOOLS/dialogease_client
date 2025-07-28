@@ -4,6 +4,10 @@ import DOMPurify from 'dompurify';
 import Api from './Api';
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 import { Howl } from 'howler';
+import Markdown from 'marked-react';
+
+
+
 function App({ keyProp }) {
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
   const [soundSrc, setSoundSrc] = useState('');
@@ -951,6 +955,11 @@ function App({ keyProp }) {
 }
 
 
+.message * {
+  line-height :1rem !important;
+}
+
+
 /* Compose */
 
 .main-card${keyProp} .conversation-compose {
@@ -1634,7 +1643,8 @@ top: -10px;
                             <div className="conversation-container-Gkdshjgfkjdgf" ref={messageEl}>
                               {messages.map((msg, index) => (
                                 <div key={index} className={`message ${msg.role === 'user' ? 'sent' + colors.dir : 'received' + colors.dir}`}>
-                                  <span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} />
+                                  {/* <span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} /> */}
+                                  <LatexMarkdown content={msg.content} />
                                 </div>
                               ))}
                               {
@@ -1752,5 +1762,67 @@ top: -10px;
     </>
   );
 }
+
+
+
+
+const LatexMarkdown = ({ content }) => {
+  const renderLatex = (latex, isInline) => {
+    try {
+      return (
+        <span
+          dangerouslySetInnerHTML={{
+            __html: katex.renderToString(latex, {
+              displayMode: !isInline,
+              throwOnError: false,
+            }),
+          }}
+        />
+      );
+    } catch (e) {
+      return <span style={{ color: "red" }}>{latex}</span>;
+    }
+  };
+
+  const renderer = {
+    paragraph(text) {
+      // Gère le cas où text est un composant React
+      if (typeof text !== "string") {
+        return <p>{text}</p>;
+      }
+
+      const parts = text.split(/(\$\$.*?\$\$)/g);
+      return (
+        <p>
+          {parts.map((part, i) => {
+            if (part.startsWith("$$") && part.endsWith("$$")) {
+              return renderLatex(part.slice(2, -2), false);
+            }
+            return part;
+          })}
+        </p>
+      );
+    },
+    text(text) {
+      // Gère le cas où text n'est pas une string
+      if (typeof text !== "string") return text;
+
+      const parts = text.split(/(\\\(.*?\\\))/g);
+      return (
+        <>
+          {parts.map((part, i) => {
+            if (part.startsWith("\\(") && part.endsWith("\\)")) {
+              return renderLatex(part.slice(2, -2), true);
+            }
+            return part;
+          })}
+        </>
+      );
+    },
+  };
+
+  return <Markdown value={content} renderer={renderer} />;
+};
+
 
 export default App;
