@@ -5,10 +5,9 @@ import Api from './Api';
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 import { Howl } from 'howler';
 import Markdown from 'marked-react';
-import ReactMarkdown from "react-markdown";
+import { MathJax, MathJaxContext } from "better-react-mathjax";
 import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
+import ReactMarkdown from "react-markdown";
 
 function App({ keyProp, id }) {
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
@@ -457,9 +456,15 @@ function App({ keyProp, id }) {
   let style = `
 
 
-  .main-card-iframe-${keyProp} *{
+  .main-card-iframe-${keyProp} *:not(svg):not(path):not(mjx-container):not(mjx-container *){
   all:revert-layer;
   }
+
+  mjx-container[jax="CHTML"][display="true"] {
+	display: block;
+	text-align: start;
+	margin: 1em 0;
+}
 
   .a-link {
    
@@ -1228,7 +1233,10 @@ top: -10px;
                               <div key={index} dir={colors.dir} className={`message ${msg.role === 'user' ? 'sent' + colors.dir : 'received' + colors.dir}`}>
                                 {/* <span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} /> */}
                                 {/* <Markdown>{msg.content}</Markdown> */}
-                                <LatexMarkdown content={msg.content} />
+                                {/* <LatexMarkdown content={msg.content} /> */}
+                                <MathJaxContext>
+                                  <MathJax><span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} /></MathJax>
+                                </MathJaxContext>
                                 {/* <ReactMarkdown
                                   children={msg.content}
                                   remarkPlugins={[remarkMath]}
@@ -1347,65 +1355,5 @@ top: -10px;
     </>
   );
 }
-
-
-
-const LatexMarkdown = ({ content }) => {
-  const renderLatex = (latex, isInline) => {
-    try {
-      return (
-        <span
-          dangerouslySetInnerHTML={{
-            __html: katex.renderToString(latex, {
-              displayMode: !isInline,
-              throwOnError: false,
-            }),
-          }}
-        />
-      );
-    } catch (e) {
-      return <span style={{ color: "red" }}>{latex}</span>;
-    }
-  };
-
-  const renderer = {
-    paragraph(text) {
-      // Gère le cas où text est un composant React
-      if (typeof text !== "string") {
-        return <p>{text}</p>;
-      }
-
-      const parts = text.split(/(\$\$.*?\$\$)/g);
-      return (
-        <p>
-          {parts.map((part, i) => {
-            if (part.startsWith("$$") && part.endsWith("$$")) {
-              return renderLatex(part.slice(2, -2), false);
-            }
-            return part;
-          })}
-        </p>
-      );
-    },
-    text(text) {
-      // Gère le cas où text n'est pas une string
-      if (typeof text !== "string") return text;
-
-      const parts = text.split(/(\\\(.*?\\\))/g);
-      return (
-        <>
-          {parts.map((part, i) => {
-            if (part.startsWith("\\(") && part.endsWith("\\)")) {
-              return renderLatex(part.slice(2, -2), true);
-            }
-            return part;
-          })}
-        </>
-      );
-    },
-  };
-
-  return <Markdown value={content} renderer={renderer} />;
-};
 
 export default App;
