@@ -10,13 +10,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/katex": "^0.16.7",
     "axios": "^1.10.0",
+    "better-react-mathjax": "^2.3.0",
     "dompurify": "^3.2.6",
     "howler": "^2.2.4",
+    "katex": "^0.16.22",
     "marked-react": "^3.0.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-speech-recognition": "^4.0.1"
+    "react-markdown": "^10.1.0",
+    "react-speech-recognition": "^4.0.1",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",

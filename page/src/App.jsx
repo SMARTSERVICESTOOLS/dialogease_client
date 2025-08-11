@@ -5,6 +5,10 @@ import Api from './Api';
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 import { Howl } from 'howler';
 import Markdown from 'marked-react';
+import { MathJax, MathJaxContext } from "better-react-mathjax";
+import remarkMath from "remark-math";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from 'remark-gfm'
 
 function App({ keyProp, id }) {
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
@@ -315,87 +319,115 @@ function App({ keyProp, id }) {
       }
     }
   };
-
-  function formatContentOld(content) {
-    // Remove 【number:number†source】 pattern
-    console.log(content)
-    content = content.replace(/【\d+:\d+†source】/g, '');
-    content = content.replace(/json/g, '');
-
-    const firstOpen = content.indexOf('{');
-    const lastClose = content.lastIndexOf('}');
-
-    let jsonData = null;
-    let jsonString = null;
-
-    if (firstOpen !== -1 && lastClose !== -1 && firstOpen < lastClose) {
-      jsonString = content.slice(firstOpen, lastClose + 1);
-      try {
-        jsonData = JSON.parse(jsonString);
-      } catch (e) {
-        console.error('Erreur lors de l\'analyse du JSON :', e);
-      }
-    }
-
-
-    if (jsonData && jsonData.ads && jsonString) {
-      console.log(jsonData['ads'])
-      // jsonData = jsonData[1].trim();
-      const parsedData = jsonData['ads'];
-
-      let jsonToHtml = `<div>`;
-
-      parsedData.forEach(data => {
-        jsonToHtml += `<a   class="jsonParent"  ${data.url ? `href="${data.url}" target="_blank"` : ''} >
-         ${data.image ? `<img src="${data.image}" />` : ''}
-          <div>${data.title}</div>
-          </a>`;
-      });
-
-      jsonToHtml += `</div>`;
-
-      content = content.replace(jsonString, jsonToHtml);
-    }
-
-
-    // Replace new line characters with <br /> tags
-    let formattedContent = content.replace(/\n/g, '<br />');
-
-    // Bold text (double asterisks)
-    formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-
-    // Italic text (single asterisks or underscores)
-    formattedContent = formattedContent.replace(/(?:\*{1}(.*?)\*{1}|_{1}(.*?)_{1})/g, (match, p1, p2) => {
-      return `<i>${p1 || p2}</i>`;
-    });
-
-    // Strikethrough text (double tildes)
-    formattedContent = formattedContent.replace(/~~(.*?)~~/g, '<del>$1</del>');
-
-    // Links ([link text](URL))
-    formattedContent = formattedContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a class="a-link" href="$2" target="_blank">$1</a>');
-
-    // Inline code (backticks)
-    formattedContent = formattedContent.replace(/`(.*?)`/g, '<code>$1</code>');
-
-    // Sanitize the formatted content to prevent XSS attacks
-    return DOMPurify.sanitize(formattedContent, {
-      ADD_ATTR: ['target']
-    });
+  function escapeHtml(unsafe) {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   function formatContent(content) {
-    const rawHtml = marked.parse(content);
-    // Sanitize the formatted content to prevent XSS attacks
-    return DOMPurify.sanitize(rawHtml, {
-      ADD_ATTR: ['target']
-    });
-  }
-  function calcY(x) {
-    console.log(x)
-    return -0.1 * x + 90 - 7;
-  }
+    // Supprimer les patterns indésirables
+    content = content.replace(/【\d+:\d+†source】/g, '').replace(/json/g, '');
 
+    // Traitement des blocs JSON
+    const firstOpen = content.indexOf('{');
+    const lastClose = content.lastIndexOf('}');
+    if (firstOpen !== -1 && lastClose !== -1 && firstOpen < lastClose) {
+      const jsonString = content.slice(firstOpen, lastClose + 1);
+      try {
+        const jsonData = JSON.parse(jsonString);
+        if (jsonData.ads) {
+          let jsonToHtml = `<div class="json-ads">`;
+          jsonData.ads.forEach(data => {
+            jsonToHtml += `<a class="json-ad" ${data.url ? `href="${escapeHtml(data.url)}" target="_blank"` : ''}>
+                        ${data.image ? `<img src="${escapeHtml(data.image)}" alt="${data.title ? escapeHtml(data.title) : ''}"/>` : ''}
+                        <div>${data.title ? escapeHtml(data.title) : ''}</div>
+                    </a>`;
+          });
+          jsonToHtml += `</div>`;
+          content = content.replace(jsonString, jsonToHtml);
+        }
+      } catch (e) {
+        // console.warn('Erreur JSON :', e);
+      }
+    }
+
+    // Protéger les blocs de code et mathématiques avant le traitement Markdown
+    const protectedBlocks = [];
+
+    // Gestion des blocs de code multilignes ```
+    content = content.replace(/```([\s\S]*?)```/g, (match, code) => {
+      protectedBlocks.push({ type: 'code', content: code });
+      return `__PROTECTED__${protectedBlocks.length - 1}__`;
+    });
+
+    // Gestion des blocs de code inline `
+    content = content.replace(/`([^`]+)`/g, (match, code) => {
+      protectedBlocks.push({ type: 'code-inline', content: code });
+      return `__PROTECTED__${protectedBlocks.length - 1}__`;
+    });
+
+    // Gestion des équations mathématiques
+    // content = content.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]*?\$|\\\(.*?\\\)|\\\[[\s\S]*?\\\])/g, (match) => {
+    //   protectedBlocks.push({ type: 'math', content: match });
+    //   return `__PROTECTED__${protectedBlocks.length - 1}__`;
+    // });
+
+    // Conversion Markdown de base
+    let formatted = content
+      // Titres
+      .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+      .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+      .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+      // Listes
+      .replace(/^\* (.*$)/gm, '<li>$1</li>')
+      .replace(/^\- (.*$)/gm, '<li>$1</li>')
+      .replace(/^\+ (.*$)/gm, '<li>$1</li>')
+      // Gras
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__(.*?)__/g, '<strong>$1</strong>')
+      // Italique
+      // .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/_(.*?)_/g, '<em>$1</em>')
+      // Liens
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      // Images
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1"/>')
+      // Saut de ligne (deux espaces à la fin de la ligne)
+      .replace(/  \n/g, '<br/>')
+      // Paragraphes (gérés plus tard avec les sauts de ligne)
+      .replace(/\n\n/g, '</p><p>');
+
+    // Restaurer les blocs protégés
+    formatted = formatted.replace(/__PROTECTED__(\d+)__/g, (_, id) => {
+      const block = protectedBlocks[id];
+      if (block.type === 'code') {
+        return `<pre><code>${escapeHtml(block.content)}</code></pre>`;
+      } else if (block.type === 'code-inline') {
+        return `<code>${escapeHtml(block.content)}</code>`;
+      } else if (block.type === 'math') {
+        // Laisser les équations mathématiques intactes pour MathJax/KaTeX
+        return block.content;
+      }
+      return '';
+    });
+
+
+
+
+
+
+    // Nettoyage final avec DOMPurify
+    return DOMPurify.sanitize(formatted, {
+      ADD_ATTR: ['target', 'rel'],
+      ADD_TAGS: ['math'],
+      FORBID_TAGS: ['script', 'style']
+    });
+
+  }
 
   const [pageHeight, setPageHeight] = useState(0);
 
@@ -430,9 +462,15 @@ function App({ keyProp, id }) {
   let style = `
 
 
-  .main-card-iframe-${keyProp} *{
+  .main-card-iframe-${keyProp} *:not(svg):not(path):not(mjx-container):not(mjx-container *){
   all:revert-layer;
   }
+
+  mjx-container[jax="CHTML"][display="true"] {
+	display: block;
+	text-align: start;
+	margin: 1em 0;
+}
 
   .a-link {
    
@@ -791,7 +829,7 @@ function App({ keyProp, id }) {
 }
 
 .message * {
-  line-height :3rem;
+  line-height :1rem;
 }
 
 
@@ -1165,6 +1203,10 @@ top: -10px;
     justify-content: center;
      z-index: 999998;
     }
+    .poweredBy${keyProp}Page>a{
+      display: flex !important;
+      justify-content: center !important;
+    }
   `;
 
   return (
@@ -1199,8 +1241,12 @@ top: -10px;
                           <div className="conversation-container-Gkdshjgfkjdgf" ref={messageEl}>
                             {messages.map((msg, index) => (
                               <div key={index} dir={colors.dir} className={`message ${msg.role === 'user' ? 'sent' + colors.dir : 'received' + colors.dir}`}>
-                                {/* <span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} /> */}
-                                <Markdown>{msg.content}</Markdown>
+                                <MathJaxContext>
+                                  <MathJax>
+                                    <span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} />
+                                    {/* <Markdown >{msg.content}</Markdown> */}
+                                  </MathJax>
+                                </MathJaxContext>
                               </div>
                             ))}
                             {
