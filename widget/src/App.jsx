@@ -404,7 +404,7 @@ function App({ keyProp }) {
       .replace(/'/g, "&#039;");
   }
 
-  function formatContent(content) {
+   function formatContent(content) {
     // Supprimer les patterns indésirables
     content = content.replace(/【\d+:\d+†source】/g, '').replace(/json/g, '');
 
@@ -427,7 +427,7 @@ function App({ keyProp }) {
           content = content.replace(jsonString, jsonToHtml);
         }
       } catch (e) {
-        console.error('Erreur JSON :', e);
+        // console.warn('Erreur JSON :', e);
       }
     }
 
@@ -466,7 +466,7 @@ function App({ keyProp }) {
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/__(.*?)__/g, '<strong>$1</strong>')
       // Italique
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/_(.*?)_/g, '<em>$1</em>')
       // Liens
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
@@ -491,12 +491,18 @@ function App({ keyProp }) {
       return '';
     });
 
+
+
+
+
+
     // Nettoyage final avec DOMPurify
     return DOMPurify.sanitize(formatted, {
       ADD_ATTR: ['target', 'rel'],
       ADD_TAGS: ['math'],
       FORBID_TAGS: ['script', 'style']
     });
+
   }
 
 

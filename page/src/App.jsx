@@ -8,6 +8,7 @@ import Markdown from 'marked-react';
 import { MathJax, MathJaxContext } from "better-react-mathjax";
 import remarkMath from "remark-math";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from 'remark-gfm'
 
 function App({ keyProp, id }) {
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
@@ -350,7 +351,7 @@ function App({ keyProp, id }) {
           content = content.replace(jsonString, jsonToHtml);
         }
       } catch (e) {
-        console.error('Erreur JSON :', e);
+        // console.warn('Erreur JSON :', e);
       }
     }
 
@@ -389,7 +390,7 @@ function App({ keyProp, id }) {
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/__(.*?)__/g, '<strong>$1</strong>')
       // Italique
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/_(.*?)_/g, '<em>$1</em>')
       // Liens
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
@@ -414,14 +415,19 @@ function App({ keyProp, id }) {
       return '';
     });
 
+
+
+
+
+
     // Nettoyage final avec DOMPurify
     return DOMPurify.sanitize(formatted, {
       ADD_ATTR: ['target', 'rel'],
       ADD_TAGS: ['math'],
       FORBID_TAGS: ['script', 'style']
     });
-  }
 
+  }
 
   const [pageHeight, setPageHeight] = useState(0);
 
@@ -1197,6 +1203,10 @@ top: -10px;
     justify-content: center;
      z-index: 999998;
     }
+    .poweredBy${keyProp}Page>a{
+      display: flex !important;
+      justify-content: center !important;
+    }
   `;
 
   return (
@@ -1231,17 +1241,12 @@ top: -10px;
                           <div className="conversation-container-Gkdshjgfkjdgf" ref={messageEl}>
                             {messages.map((msg, index) => (
                               <div key={index} dir={colors.dir} className={`message ${msg.role === 'user' ? 'sent' + colors.dir : 'received' + colors.dir}`}>
-                                {/* <span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} /> */}
-                                {/* <Markdown>{msg.content}</Markdown> */}
-                                {/* <LatexMarkdown content={msg.content} /> */}
                                 <MathJaxContext>
-                                  <MathJax><span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} /></MathJax>
+                                  <MathJax>
+                                    <span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} />
+                                    {/* <Markdown >{msg.content}</Markdown> */}
+                                  </MathJax>
                                 </MathJaxContext>
-                                {/* <ReactMarkdown
-                                  children={msg.content}
-                                  remarkPlugins={[remarkMath]}
-                                  rehypePlugins={[rehypeKatex]}
-                                /> */}
                               </div>
                             ))}
                             {
