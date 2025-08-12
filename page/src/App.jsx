@@ -4,11 +4,8 @@ import DOMPurify from 'dompurify';
 import Api from './Api';
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 import { Howl } from 'howler';
-import Markdown from 'marked-react';
 import { MathJax, MathJaxContext } from "better-react-mathjax";
-import remarkMath from "remark-math";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from 'remark-gfm'
+
 
 function App({ keyProp, id }) {
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
@@ -65,7 +62,31 @@ function App({ keyProp, id }) {
     }
   }
 
+  const useMathJax = () => {
+    useEffect(() => {
+      if (window.MathJax) {
+        window.MathJax.typesetPromise();
+      }
+    }, []);
+  };
 
+  const MathMessage = ({ content }) => {
+    
+    useMathJax(); // Trigger MathJax processing
+   
+    return (
+      <MathJaxContext>
+        <MathJax>
+          <span dangerouslySetInnerHTML={{ __html: formatContent(content) }} />
+        </MathJax>
+      </MathJaxContext>
+    );
+  };
+  useEffect(() => {
+  if (window.MathJax) {
+    window.MathJax.typesetPromise();
+  }
+}, [messages]); // Re-render MathJax when messages change
   const playAudio = () => {
     const sound = new Howl({
       src: [`${BASE_URL + soundSrc}`],
@@ -1241,12 +1262,7 @@ top: -10px;
                           <div className="conversation-container-Gkdshjgfkjdgf" ref={messageEl}>
                             {messages.map((msg, index) => (
                               <div key={index} dir={colors.dir} className={`message ${msg.role === 'user' ? 'sent' + colors.dir : 'received' + colors.dir}`}>
-                                <MathJaxContext>
-                                  <MathJax>
-                                    <span dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} />
-                                    {/* <Markdown >{msg.content}</Markdown> */}
-                                  </MathJax>
-                                </MathJaxContext>
+                                <MathMessage content={msg.content} />
                               </div>
                             ))}
                             {
@@ -1276,6 +1292,13 @@ top: -10px;
                           <form onSubmit={send}>
 
                             <div className='conversation-compose'>
+                              {/* <textarea style={{ resize: 'none' }} className="input-msg" name="input" placeholder={placeholder} autoComplete="off" value={message} onChange={handleChange} autoFocus
+                                rows={2}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    send(e);
+                                  }
+                                }}></textarea> */}
                               <textarea style={{ resize: 'none' }} className="input-msg" name="input" placeholder={placeholder} autoComplete="off" value={message} onChange={handleChange} autoFocus
                                 rows={2}
                                 onKeyDown={(e) => {
